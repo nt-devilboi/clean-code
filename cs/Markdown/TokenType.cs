@@ -4,5 +4,7 @@ public enum TokenType
 {
     Header,
     NewLine,
-    Italic
+    Italic,
+    Bold,
+    SimpleText
 }
