@@ -1,8 +1,8 @@
+using System.Collections.Immutable;
+
 namespace Markdown.Interfaces;
 
 public interface IParser
 {
-    IReadOnlyList<Token> Tokenize(string text);
-
-    IElementNode GenerateTree(IReadOnlyList<Token> tokens);
+    string ToHtml(IImmutableList<Token> tokens); // нужно будет обобщить, до вида разметки.
 }

@@ -7,8 +7,12 @@ public class SyntaxAnalyzerFacade : ISyntaxAnalyzer
 {
     public IElementNode ParseText(string text, IParser parser)
     {
-        var tokens = parser.Tokenize(text);
-        return parser.GenerateTree(tokens);
+        throw new NotImplementedException();
+    }
+
+    public IElementNode arseText(string text, IParser parser)
+    {
+        throw new NotImplementedException();
     }
 
     public string Translate(IElementNode root, IVisitorTranslator translator)

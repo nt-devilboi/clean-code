@@ -4,8 +4,9 @@ namespace Markdown;
 
 public class ElementNodeNewLine : IElementNode
 {
-    private IElementNode NextLine;
+    public IElementNode NextLine { get; set; }
     
+
     public string Evaluate()
     {
         throw new NotImplementedException(); // пока не просчитать нужен он или нет.

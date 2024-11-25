@@ -6,5 +6,6 @@ public enum TokenType
     NewLine,
     Italic,
     Bold,
-    SimpleText
+    Word,
+    Digit
 }

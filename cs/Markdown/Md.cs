@@ -1,18 +1,15 @@
 using Markdown.Interfaces;
 
 namespace Markdown;
+// можно даже абстрактую фабрику заюзать, а вось будут разные visitor(не в html а в xml)
 
 public class Md : IMd
 {
-    private readonly ISyntaxAnalyzer syntaxAnalyzer;
-    private readonly IParser parser;
-    private readonly IVisitorTranslator translator;
-    // можно даже абстрактую фабрику заюзать, а вось будут разные visitor(не в html а в xml)
-
+    private readonly ILexer lexer = new MdParser();
+    private readonly IParser Parser = new MdParser();
     public string Render(string text)
     {
-        var syntaxTree = syntaxAnalyzer.ParseText(text, parser);
-        
-        return syntaxAnalyzer.Translate(syntaxTree, translator);
+        var tokens = lexer.Tokenize(text);
+        return Parser.ToHtml(tokens);
     }
 }
