@@ -9,7 +9,7 @@ public class Token(string value, TokenType tokenType)
     
     public int EndIndex => StartIndex + value.Length - 1;
     public int Lenght => value.Length;
-    
+    // можно свойства аттрибут, который будет словарём, для некоторой доп инфы
     public override bool Equals(object? obj)
     {
         if (obj is not Token token) return false;

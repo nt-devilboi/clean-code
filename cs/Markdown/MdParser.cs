@@ -12,7 +12,7 @@ public class MdParser : IParser, ILexer
     {
         var result = new List<Token>();
         var ptr = 0;
-        var stack = new Stack<Token>();
+        var stack = new TokenTree();
         while (ptr < text.Length)
         {
             if ('#' == text[ptr] && ' ' == text[ptr + 1] && (ptr == 0 || text[ptr - 1] == '\n'))
@@ -21,6 +21,7 @@ public class MdParser : IParser, ILexer
                     { StartIndex = ptr, IsTag = true };
                 result.Add(headerStart);
                 stack.Push(headerStart);
+                stack.HaveFreeOpenHeader = true;
                 ptr++;
                 ptr++;
             }
@@ -30,9 +31,9 @@ public class MdParser : IParser, ILexer
                 var digit = CreateTokenText(TokenType.Digit, ptr, text);
                 result.Add(digit);
                 ptr += digit.Lenght;
-                if (stack.TryPeek(out var token) && token.Type is TokenType.Italic or TokenType.Bold)
+                if (stack.TryPeekLeaf(out var token) && token.Type is TokenType.Italic or TokenType.Bold)
                 {
-                    stack.Pop();
+                    stack.PopLeaf();
                 }
             }
 
@@ -46,7 +47,7 @@ public class MdParser : IParser, ILexer
             else if ('\n' == text[ptr])
             {
                 result.Add(CreateTokenNewLine(stack, ptr));
-           
+                stack = new TokenTree();
                 ptr++;
             }
 
@@ -72,87 +73,103 @@ public class MdParser : IParser, ILexer
         throw new NotImplementedException();
     }
 
-    private Token CreateTokenNewLine(Stack<Token> stack, int ptr)
+    private Token CreateTokenNewLine(TokenTree nodes, int ptr)
     {
-        while (stack.TryPeek(out var token) && token.Type != TokenType.Header)
-        {
-            stack.Pop();
-        }
+        nodes.Clear();
 
 
-        return new Token("\n", TokenType.NewLine)
-            { StartIndex = ptr, IsTag = LastIsHeader(stack) };
+        return new Token("\n", TokenType.NewLine) { StartIndex = ptr, IsTag = nodes.HaveFreeOpenHeader };
     }
 
-    private static Token CreateTokenBold(Stack<Token> stack, int ptr)
+    private static Token CreateTokenBold(TokenTree stack, int ptr)
     {
-        if (stack.TryPeek(out var token) && token.Type is TokenType.Bold)
+        if (stack.TryPeekLeaf(out var token) && token.Type is TokenType.Bold)
         {
-            stack.Pop();
+            stack.PopLeaf();
             // тип если они рядом, то это не tag
             if (token.EndIndex + 1 == ptr) return new Token("__", TokenType.Bold) { StartIndex = ptr };
-
+            
             token.IsTag = true;
-            return new Token("__", TokenType.Bold) { StartIndex = ptr, IsTag = true };
+            var tokenCloseBold = new Token("__", TokenType.Bold) { StartIndex = ptr, IsTag = true };
+            stack.CompletedBold = (token, tokenCloseBold);
+            return tokenCloseBold;
         }
 
-        if (stack.TryPeek(out token) && token.Type is TokenType.Italic)
+        if (stack.TryPeekLeaf(out token) && token.Type is TokenType.Italic)
         {
-            var prevToken = stack.Pop();
-            if (stack.TryPeek(out var tokenInner) && tokenInner.Type is TokenType.Bold)
+            var prevToken = stack.PopLeaf();
+            if (stack.TryPeekLeaf(out var tokenInner) && tokenInner.Type is TokenType.Bold)
             {
-                tokenInner = stack.Pop();
+                tokenInner = stack.PopLeaf();
                 tokenInner.IsTag = true;
+                stack.HaveFreeOpenBold = false;
                 return new Token("__", TokenType.Bold) { StartIndex = ptr, IsTag = true };
             }
 
-            tokenInner = new Token("__", TokenType.Bold) { StartIndex = ptr };
+            var tokenBold = new Token("__", TokenType.Bold) { StartIndex = ptr };
+            stack.HaveFreeOpenBold = true;
             stack.Push(prevToken);
-            stack.Push(tokenInner);
-            return tokenInner;
+            stack.Push(tokenBold);
+            return tokenBold;
         }
 
 
         var bold = new Token("__", TokenType.Bold) { StartIndex = ptr };
         stack.Push(bold);
+        stack.HaveFreeOpenBold = true;
         return bold;
     }
 
-    private static Token CreateTokenItalic(Stack<Token> stack, int ptr, string text)
+    private static Token CreateTokenItalic(TokenTree stack, int ptr, string text)
     {
-        if (stack.TryPeek(out var token) && token.Type is TokenType.Italic)
+        if (stack.TryPeekLeaf(out var token) && token.Type is TokenType.Italic)
         {
-            stack.Pop();
+            stack.PopLeaf();
             // тип если они рядом, то это не tag
             if (token.EndIndex + 1 == ptr) return new Token("_", TokenType.Italic) { StartIndex = ptr };
             if (char.IsWhiteSpace(text[ptr - 1])) return new Token("_", TokenType.Italic) { StartIndex = ptr };
-            
+            if (stack.InHaveBold)
+            {
+                stack.CompletedBold.Item1.IsTag = false;
+                stack.CompletedBold.Item2.IsTag = false;
+            }
             token.IsTag = true;
+            stack.HaveFreeOpenItalic = false;
             return new Token("_", TokenType.Italic) { StartIndex = ptr, IsTag = true };
         }
 
-        if (stack.TryPeek(out var tokenPrev) && tokenPrev.Type is TokenType.Bold)
+        if (stack.TryPeekLeaf(out var tokenPrev) && tokenPrev.Type is TokenType.Bold)
         {
-            var prevBold = stack.Pop();
-            if (stack.TryPeek(out token) && token.Type is TokenType.Italic)
+            var prevBold = stack.PopLeaf();
+            if (stack.TryPeekLeaf(out token) && token.Type is TokenType.Italic && !stack.HaveFreeOpenBold)
             {
-                stack.Pop();
-                return new Token("_", TokenType.Italic) { StartIndex = ptr };
+                var italicPrev = stack.PopLeaf();
+                italicPrev.IsTag = true;
+                stack.CompletedBold.Item1.IsTag = false;
+                stack.CompletedBold.Item2.IsTag = false;
+                stack.HaveFreeOpenItalic = false;
+                return new Token("_", TokenType.Italic) { StartIndex = ptr, IsTag = true };
             }
 
+            if (stack.TryPeekLeaf(out token) && token.Type is TokenType.Italic && stack.HaveFreeOpenBold)
+            {
+                var italicPrev = stack.PopLeaf();
+                italicPrev.IsTag = false;
+                return new Token("_", TokenType.Italic) { StartIndex = ptr};
+            }
             stack.Push(prevBold);
         }
 
         var italic = new Token("_", TokenType.Italic) { StartIndex = ptr };
-
+        stack.HaveFreeOpenItalic = true;
         if (ptr + 1 < text.Length && !char.IsWhiteSpace(text[ptr + 1])) stack.Push(italic);
         return italic;
     }
 
-    private bool LastIsHeader(Stack<Token> stack)
+    private bool LastIsHeader(TokenTree stack)
     {
-        if (!stack.TryPeek(out var token) || token.Type != TokenType.Header) return false;
-        stack.Pop();
+        if (!stack.TryPeekLeaf(out var token) || token.Type != TokenType.Header) return false;
+        stack.PopLeaf();
         return true;
     }
 
