@@ -25,6 +25,10 @@ public class MdConvertToHtml
     [TestCase("ou_t_er", "ou<em>t</em>er", TestName = "ou_t_er -> ou<em>t</em>er")] // условие 4
     [TestCase("_3231_", "_3231_", TestName = "_3231_ -> _3231_")] // условие 3
     [TestCase("__3231__", "__3231__", TestName = "__3231__ -> __3231__")] // условие 3
+    [TestCase(@"\\", @"\", TestName = @"\\ -> \")] 
+    [TestCase(@"\__Hello__", "__Hello__", TestName = @"\__Hello__ -> __Hello__")] 
+    [TestCase(@"\_Hello_", "_Hello_", TestName = @"\_Hello_ -> _Hello_")] 
+    [TestCase(@"\\_Hello_", @"\<em>Hello</em>", TestName = @"\\_Hello_ -> \<em>Hello</em>")] 
     public void MdParser_Render_ShouldProduceCorrectHtml(string input, string expectedOutput)
     {
         Parser.Render(input).Should().Be(expectedOutput);

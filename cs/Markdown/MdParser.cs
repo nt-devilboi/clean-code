@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Text;
 using Markdown.Interfaces;
 using Markdown.NodeElement;
@@ -36,30 +37,65 @@ public class MdParser : IParser, ILexer
                 }
             }
 
-            else if (char.IsLetter(text[ptr]))
+            else if (text[ptr] == '\\')
             {
-                var word = CreateTokenText(TokenType.Word, ptr, text);
-                result.Add(word);
-                ptr += word.Lenght;
+                if (stack.TryPeek(out var token) && token.Type is TokenType.Shieler && ptr - 1 == token.StartIndex)
+                {
+                    stack.Pop();
+                    result.Add(new Token(@"\", TokenType.Shieler) { StartIndex = ptr });
+                }
+                else
+                {
+                    stack.Push(new Token(@"\", TokenType.Shieler) { StartIndex = ptr, IsTag = true });
+                }
+
+                ptr++;
             }
 
             else if ('\n' == text[ptr])
             {
                 result.Add(CreateTokenNewLine(stack, ptr));
-           
+
+
                 ptr++;
             }
 
-            else if (ptr + 1 < text.Length && '_' == text[ptr] && '_' == text[ptr + 1])
+            else if (IsBoldSymbol(text, ptr))
             {
-                result.Add(CreateTokenBold(stack, ptr));
+                if (LeftIs(TokenType.Shieler, stack, ptr))
+                {
+                    stack.Pop();
+                    result.Add(new Token("__", TokenType.Bold) { StartIndex = ptr });
+                }
+                else
+                {
+                    result.Add(CreateTokenBold(stack, ptr, text));
+                }
+
                 ptr += 2;
             }
 
             else if ('_' == text[ptr])
             {
-                result.Add(CreateTokenItalic(stack, ptr, text));
+                if (LeftIs(TokenType.Shieler, stack, ptr))
+                {
+                    stack.Pop();
+                    result.Add(new Token("_", TokenType.Italic) { StartIndex = ptr });
+                }
+                else
+                {
+                    result.Add(CreateTokenItalic(stack, ptr, text));
+                }
+
                 ptr++;
+            }
+
+
+            else if (!char.IsWhiteSpace(text[ptr]))
+            {
+                var word = CreateTokenText(TokenType.Word, ptr, text);
+                result.Add(word);
+                ptr += word.Lenght;
             }
 
 
@@ -70,6 +106,16 @@ public class MdParser : IParser, ILexer
         return ImmutableList.CreateRange(result);
 
         throw new NotImplementedException();
+    }
+
+    private static bool IsBoldSymbol(string text, int ptr)
+    {
+        return ptr + 1 < text.Length && '_' == text[ptr] && '_' == text[ptr + 1];
+    }
+
+    private static bool LeftIs(TokenType tokenType, Stack<Token> stack, int ptr)
+    {
+        return stack.TryPeek(out var token) && token.Type == tokenType && token.StartIndex + 1 == ptr;
     }
 
     private Token CreateTokenNewLine(Stack<Token> stack, int ptr)
@@ -84,13 +130,14 @@ public class MdParser : IParser, ILexer
             { StartIndex = ptr, IsTag = LastIsHeader(stack) };
     }
 
-    private static Token CreateTokenBold(Stack<Token> stack, int ptr)
+    private static Token CreateTokenBold(Stack<Token> stack, int ptr, string text)
     {
         if (stack.TryPeek(out var token) && token.Type is TokenType.Bold)
         {
             stack.Pop();
             // тип если они рядом, то это не tag
             if (token.EndIndex + 1 == ptr) return new Token("__", TokenType.Bold) { StartIndex = ptr };
+            if (char.IsWhiteSpace(text[ptr - 1])) return new Token("__", TokenType.Bold) { StartIndex = ptr };
 
             token.IsTag = true;
             return new Token("__", TokenType.Bold) { StartIndex = ptr, IsTag = true };
@@ -126,7 +173,7 @@ public class MdParser : IParser, ILexer
             // тип если они рядом, то это не tag
             if (token.EndIndex + 1 == ptr) return new Token("_", TokenType.Italic) { StartIndex = ptr };
             if (char.IsWhiteSpace(text[ptr - 1])) return new Token("_", TokenType.Italic) { StartIndex = ptr };
-            
+
             token.IsTag = true;
             return new Token("_", TokenType.Italic) { StartIndex = ptr, IsTag = true };
         }
