@@ -14,6 +14,7 @@ public class MdParser : IParser, ILexer
         var result = new List<Token>();
         var ptr = 0;
         var stack = new Stack<Token>();
+        var listPossibleTags = new List<(Token start, Token end)>();
         while (ptr < text.Length)
         {
             if ('#' == text[ptr] && ' ' == text[ptr + 1] && (ptr == 0 || text[ptr - 1] == '\n'))
@@ -60,7 +61,7 @@ public class MdParser : IParser, ILexer
                 ptr++;
             }
 
-            else if (IsBoldSymbol(text, ptr))
+            else if (IsBold(text, ptr))
             {
                 if (LeftIs(TokenType.Shieler, stack, ptr))
                 {
@@ -69,7 +70,7 @@ public class MdParser : IParser, ILexer
                 }
                 else
                 {
-                    result.Add(CreateTokenBold(stack, ptr, text));
+                    result.Add(CreateTokenBold(stack, ptr, text, listPossibleTags));
                 }
 
                 ptr += 2;
@@ -84,7 +85,7 @@ public class MdParser : IParser, ILexer
                 }
                 else
                 {
-                    result.Add(CreateTokenItalic(stack, ptr, text));
+                    result.Add(CreateTokenItalic(stack, ptr, text, listPossibleTags));
                 }
 
                 ptr++;
@@ -102,16 +103,58 @@ public class MdParser : IParser, ILexer
             else ptr++;
         }
 
-
+        SetTags(listPossibleTags);
         return ImmutableList.CreateRange(result);
 
         throw new NotImplementedException();
     }
 
-    private static bool IsBoldSymbol(string text, int ptr)
+    private void SetTags(List<(Token start, Token end)> possibleTags)
     {
-        return ptr + 1 < text.Length && '_' == text[ptr] && '_' == text[ptr + 1];
+        if (possibleTags.Count == 1)
+        {
+            possibleTags[0].start.IsTag = true;
+            possibleTags[0].end.IsTag = true;
+            return;
+        }
+
+        for (int i = 0; i < possibleTags.Count; i++)
+        for (int j = 0; j < possibleTags.Count; j++)
+        {
+            if (i == j) continue;
+            if (Intersect(possibleTags, i, j) ||
+                (Inside(possibleTags, i, j) &&
+                 possibleTags[i].start.Type == TokenType.Bold))
+            {
+                possibleTags[i].start.IsTag = false;
+                possibleTags[i].end.IsTag = false;
+
+                break;
+            }
+
+            possibleTags[i].start.IsTag = true;
+            possibleTags[i].end.IsTag = true;
+        }
     }
+
+    private static bool Inside(List<(Token start, Token end)> possibleTags, int i, int j)
+    {
+        return possibleTags[i].start.StartIndex > possibleTags[j].start.StartIndex &&
+               possibleTags[i].end.StartIndex < possibleTags[j].end.StartIndex;
+    }
+
+    private static bool Intersect(List<(Token start, Token end)> possibleTags, int i, int j)
+    {
+        return possibleTags[i].end.StartIndex > possibleTags[j].start.StartIndex &&
+               possibleTags[i].end.StartIndex < possibleTags[j].end.StartIndex &&
+               possibleTags[i].start.StartIndex < possibleTags[j].start.StartIndex ||
+               possibleTags[j].end.StartIndex > possibleTags[i].start.StartIndex &&
+               possibleTags[j].end.StartIndex < possibleTags[i].end.StartIndex &&
+               possibleTags[j].start.StartIndex < possibleTags[i].start.StartIndex;
+    }
+
+    private static bool IsBold(string text, int ptr)
+        => ptr + 1 < text.Length && '_' == text[ptr] && '_' == text[ptr + 1];
 
     private static bool LeftIs(TokenType tokenType, Stack<Token> stack, int ptr)
     {
@@ -130,33 +173,35 @@ public class MdParser : IParser, ILexer
             { StartIndex = ptr, IsTag = LastIsHeader(stack) };
     }
 
-    private static Token CreateTokenBold(Stack<Token> stack, int ptr, string text)
+    private static Token CreateTokenBold(Stack<Token> stack, int ptr, string text, List<(Token, Token)> possibleTags)
     {
         if (stack.TryPeek(out var token) && token.Type is TokenType.Bold)
         {
             stack.Pop();
-            // тип если они рядом, то это не tag
             if (token.EndIndex + 1 == ptr) return new Token("__", TokenType.Bold) { StartIndex = ptr };
             if (char.IsWhiteSpace(text[ptr - 1])) return new Token("__", TokenType.Bold) { StartIndex = ptr };
 
-            token.IsTag = true;
-            return new Token("__", TokenType.Bold) { StartIndex = ptr, IsTag = true };
+            var boldClose = new Token("__", TokenType.Bold) { StartIndex = ptr };
+            possibleTags.Add((token, boldClose));
+            return boldClose;
         }
 
         if (stack.TryPeek(out token) && token.Type is TokenType.Italic)
         {
-            var prevToken = stack.Pop();
-            if (stack.TryPeek(out var tokenInner) && tokenInner.Type is TokenType.Bold)
+            var prevItalic = stack.Pop();
+            if (stack.TryPeek(out var tokenBold) && tokenBold.Type is TokenType.Bold)
             {
-                tokenInner = stack.Pop();
-                tokenInner.IsTag = true;
-                return new Token("__", TokenType.Bold) { StartIndex = ptr, IsTag = true };
+                var boldOpen = stack.Pop();
+                var boldClose = new Token("__", TokenType.Bold) { StartIndex = ptr };
+                possibleTags.Add((boldOpen, boldClose));
+                stack.Push(prevItalic);
+                return boldClose;
             }
 
-            tokenInner = new Token("__", TokenType.Bold) { StartIndex = ptr };
-            stack.Push(prevToken);
-            stack.Push(tokenInner);
-            return tokenInner;
+            var newBold = new Token("__", TokenType.Bold) { StartIndex = ptr };
+            stack.Push(prevItalic);
+            stack.Push(newBold);
+            return newBold;
         }
 
 
@@ -165,7 +210,8 @@ public class MdParser : IParser, ILexer
         return bold;
     }
 
-    private static Token CreateTokenItalic(Stack<Token> stack, int ptr, string text)
+    // todo: createTokenItalic and TokenBold are same
+    private static Token CreateTokenItalic(Stack<Token> stack, int ptr, string text, List<(Token, Token)> possibleTags)
     {
         if (stack.TryPeek(out var token) && token.Type is TokenType.Italic)
         {
@@ -174,8 +220,10 @@ public class MdParser : IParser, ILexer
             if (token.EndIndex + 1 == ptr) return new Token("_", TokenType.Italic) { StartIndex = ptr };
             if (char.IsWhiteSpace(text[ptr - 1])) return new Token("_", TokenType.Italic) { StartIndex = ptr };
 
-            token.IsTag = true;
-            return new Token("_", TokenType.Italic) { StartIndex = ptr, IsTag = true };
+
+            var italicClose = new Token("_", TokenType.Italic) { StartIndex = ptr };
+            possibleTags.Add((token, italicClose));
+            return italicClose;
         }
 
         if (stack.TryPeek(out var tokenPrev) && tokenPrev.Type is TokenType.Bold)
@@ -183,11 +231,17 @@ public class MdParser : IParser, ILexer
             var prevBold = stack.Pop();
             if (stack.TryPeek(out token) && token.Type is TokenType.Italic)
             {
-                stack.Pop();
-                return new Token("_", TokenType.Italic) { StartIndex = ptr };
+                var italicOpen = stack.Pop();
+                var italicClose = new Token("_", TokenType.Italic) { StartIndex = ptr };
+                possibleTags.Add((italicOpen, italicClose));
+                stack.Push(prevBold);
+                return italicClose;
             }
 
+            var newItalic = new Token("_", TokenType.Italic) { StartIndex = ptr };
             stack.Push(prevBold);
+            stack.Push(newItalic);
+            return newItalic;
         }
 
         var italic = new Token("_", TokenType.Italic) { StartIndex = ptr };
