@@ -17,14 +17,20 @@ public class MdConvertToHtml
     [TestCase("# __bold _italic_ text__\n", "<h1><strong>bold <em>italic</em> text</strong></h1>\n")]
     [TestCase("____", "____")] // условие 10
     [TestCase("__", "__")] // условие 10
-    [TestCase("_hi __bold__ t_", "<em>hi __bold__ t</em>")] // условие 2
+    [TestCase("_hi __bold__ t_", "<em>hi __bold__ t</em>")] // условие 2 
     [TestCase("_hi __bold t_ k__", "_hi __bold t_ k__", TestName = "intersect")]  // условие 9
+    [TestCase("__hi _bold t__ k_", "__hi _bold t__ k_", TestName = "intersect")]  // условие 9
     [TestCase("_ outer_", "_ outer_", TestName = "_ outer_ -> _ outer_")] // условие 7
     [TestCase("_outer _", "_outer _", TestName = "_outer _ -> _outer _")] // условие 8
     [TestCase("_outer\n_", "_outer\n_", TestName = "spaceAfterItalicSymbol")] // условие 9
     [TestCase("ou_t_er", "ou<em>t</em>er", TestName = "ou_t_er -> ou<em>t</em>er")] // условие 4
     [TestCase("_3231_", "_3231_", TestName = "_3231_ -> _3231_")] // условие 3
     [TestCase("__3231__", "__3231__", TestName = "__3231__ -> __3231__")] // условие 3
+    [TestCase(@"\\", @"\", TestName = @"\\ -> \")] 
+    [TestCase(@"\__Hello__", "__Hello__", TestName = @"\__Hello__ -> __Hello__")] 
+    [TestCase(@"\_Hello_", "_Hello_", TestName = @"\_Hello_ -> _Hello_")] 
+    [TestCase(@"\\_Hello_", @"\<em>Hello</em>", TestName = @"\\_Hello_ -> \<em>Hello</em>")] 
+    [TestCase(@"# _hello_ __how to play__ _with __my__ friend_", "<h1><em>hello</em> <strong>how to play</strong> <em>with __my__ friend</em></h1>" )]
     public void MdParser_Render_ShouldProduceCorrectHtml(string input, string expectedOutput)
     {
         Parser.Render(input).Should().Be(expectedOutput);

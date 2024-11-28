@@ -7,5 +7,6 @@ public enum TokenType
     Italic,
     Bold,
     Word,
-    Digit
+    Digit,
+    Shieler
 }
