@@ -3,19 +3,25 @@ namespace Markdown;
 public class Token(string value, TokenType tokenType)
 {
     public TokenType Type { get; } = tokenType;
-    public string Value { get; } = value;
+    public string Value { get;  } = value;
     public int StartIndex { get; init; }
-    public bool IsTag { get; set; }
+    public bool IsTag { get; set; } // todo: можно убрать
     
-    public int EndIndex => StartIndex + value.Length - 1;
-    public int Lenght => value.Length;
-    // можно свойства аттрибут, который будет словарём, для некоторой доп инфы
+    public int EndIndex => StartIndex + Value.Length - 1;
+    public int Lenght => Value.Length;
+    
     public override bool Equals(object? obj)
     {
-        if (obj is not Token token) return false;
+        return obj is Token token && Equals(token);
+    }
 
-        return token.Type == Type && token.Value == Value && 
-               StartIndex == token.StartIndex && token.EndIndex == EndIndex &&
-               token.IsTag == IsTag;
+    private bool Equals(Token other)
+    {
+        return Type == other.Type && Value == other.Value && StartIndex == other.StartIndex && IsTag == other.IsTag;
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine((int)Type, Value, StartIndex, IsTag);
     }
 }

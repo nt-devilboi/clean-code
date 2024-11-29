@@ -6,10 +6,10 @@ namespace Markdown;
 public class Md : IMd
 {
     private readonly ILexer lexer = new MdParser();
-    private readonly IParser Parser = new MdParser();
+    private readonly IParser Parser = new TokenParser();
     public string Render(string text)
     {
         var tokens = lexer.Tokenize(text);
-        return Parser.ToHtml(tokens);
+        return Parser.Html(tokens);
     }
 }

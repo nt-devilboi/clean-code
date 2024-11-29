@@ -30,7 +30,9 @@ public class MdConvertToHtml
     [TestCase(@"\__Hello__", "__Hello__", TestName = @"\__Hello__ -> __Hello__")] 
     [TestCase(@"\_Hello_", "_Hello_", TestName = @"\_Hello_ -> _Hello_")] 
     [TestCase(@"\\_Hello_", @"\<em>Hello</em>", TestName = @"\\_Hello_ -> \<em>Hello</em>")] 
-    [TestCase(@"# _hello_ __how to play__ _with __my__ friend_", "<h1><em>hello</em> <strong>how to play</strong> <em>with __my__ friend</em></h1>" )]
+    [TestCase("# _hello_ __how to play__ _with __my__ friend_", "<h1><em>hello</em> <strong>how to play</strong> <em>with __my__ friend</em></h1>" )]
+    [TestCase("_he__llo _", "_he__llo _" )]
+    [TestCase(@"\\n", @"\n" )]
     public void MdParser_Render_ShouldProduceCorrectHtml(string input, string expectedOutput)
     {
         Parser.Render(input).Should().Be(expectedOutput);
