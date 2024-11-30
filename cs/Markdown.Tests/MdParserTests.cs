@@ -16,53 +16,60 @@ public class MdParserTests
     }
 
     [Test]
-    public void MdParser_ParseTag_HeaderWithText()
+    public void MdParser_ParseTag_SimpleHeader() // Тест на простой заголовок
     {
         var tokens = lexer.Tokenize("# hello");
 
-        tokens[0].Should().Be(new Token("# ", TokenType.Header) { StartIndex = 0, IsTag = true });
-        tokens[1].Should().Be(new Token("hello", TokenType.Word) { StartIndex = 2 });
+        tokens.Should().BeEquivalentTo([
+            new Token("# ", TokenType.Header) { StartIndex = 0, IsTag = true },
+            new Token("hello", TokenType.Word) { StartIndex = 2 }
+        ]);
     }
 
 
+
     [Test]
-    public void MdParser_ParseTag_HeaderWithTextWithNewLine()
+    public void MdParser_ParseTag_HeaderWithTextWithNewLine() // Тест на заголовок с текстом и переносом строки
     {
         var tokens = lexer.Tokenize("# hello\n");
 
-        tokens[0].Should().Be(new Token("# ", TokenType.Header)
-            { StartIndex = 0, IsTag = true });
-        tokens[1].Should().Be(new Token("hello", TokenType.Word) { StartIndex = 2 });
-        tokens[2].Should().Be(new Token("\n", TokenType.NewLine)
-            { StartIndex = 7, IsTag = true });
+        tokens.Should().BeEquivalentTo([
+            new Token("# ", TokenType.Header) { StartIndex = 0, IsTag = true },
+            new Token("hello", TokenType.Word) { StartIndex = 2 },
+            new Token("\n", TokenType.NewLine) { StartIndex = 7, IsTag = true }
+        ]);
     }
 
+
     [Test]
-    public void MdParser_ParseTag_HeaderWithTextWithNewLineAndText()
+    public void MdParser_ParseTag_HeaderWithTextWithNewLineAndText() // Тест на заголовок с текстом, переносом строки и последующим текстом
     {
         var tokens = lexer.Tokenize("# hello\n hi");
 
-        tokens[0].Should().Be(new Token("# ", TokenType.Header)
-            { StartIndex = 0, IsTag = true });
-        tokens[1].Should().Be(new Token("hello", TokenType.Word) { StartIndex = 2 });
-        tokens[2].Should().Be(new Token("\n", TokenType.NewLine)
-            { StartIndex = 7, IsTag = true });
-        tokens[3].Should().Be(new Token("hi", TokenType.Word)
-            { StartIndex = 9, IsTag = false });
+        tokens.Should().BeEquivalentTo([
+            new Token("# ", TokenType.Header) { StartIndex = 0, IsTag = true },
+            new Token("hello", TokenType.Word) { StartIndex = 2 },
+            new Token("\n", TokenType.NewLine) { StartIndex = 7, IsTag = true },
+            new Token("hi", TokenType.Word) { StartIndex = 9, IsTag = false }
+        ]);
     }
+
 
     [Test]
     public void MdParser_ParseTag_BoldText()
     {
         var text = "__bold text__";
 
-        var token = lexer.Tokenize(text);
+        var tokens = lexer.Tokenize(text);
 
 
-        token[0].Should().Be(new Token("__", TokenType.Bold) { StartIndex = 0, IsTag = true });
-        token[1].Should().Be(new Token("bold", TokenType.Word) { StartIndex = 2 });
-        token[2].Should().Be(new Token("text", TokenType.Word) { StartIndex = 7 });
-        token[3].Should().Be(new Token("__", TokenType.Bold) { StartIndex = 11, IsTag = true });
+        tokens.Should().BeEquivalentTo(new[]
+        {
+            new Token("__", TokenType.Bold) { StartIndex = 0, IsTag = true },
+            new Token("bold", TokenType.Word) { StartIndex = 2 },
+            new Token("text", TokenType.Word) { StartIndex = 7 },
+            new Token("__", TokenType.Bold) { StartIndex = 11, IsTag = true }
+        });
     }
 
     [Test]
