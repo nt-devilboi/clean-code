@@ -8,5 +8,5 @@ public enum TokenType
     Bold,
     Word,
     Digit,
-    Shieler
+    BackSlash
 }

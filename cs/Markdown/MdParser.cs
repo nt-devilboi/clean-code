@@ -5,14 +5,12 @@ using Markdown.NodeElement;
 
 namespace Markdown;
 
-// todo 
 public class MdParser : ILexer
 {
     public IImmutableList<Token> Tokenize(string text)
     {
         var result = new List<Token>();
         var ptr = 0;
-        var tokenPtr = 0;
         var stack = new Stack<Token>();
         var pairTags = new List<PairToken>();
         while (ptr < text.Length)
@@ -39,14 +37,14 @@ public class MdParser : ILexer
 
             else if (text[ptr] == '\\')
             {
-                if (OnLeft(TokenType.Shieler, stack, ptr))
+                if (OnLeft(TokenType.BackSlash, stack, ptr))
                 {
                     stack.Pop();
-                    result.Add(new Token(@"\", TokenType.Shieler) { StartIndex = ptr });
+                    result.Add(new Token(@"\", TokenType.BackSlash) { StartIndex = ptr });
                 }
                 else
                 {
-                    stack.Push(new Token(@"\", TokenType.Shieler) { StartIndex = ptr, IsTag = true });
+                    stack.Push(new Token(@"\", TokenType.BackSlash) { StartIndex = ptr, IsTag = true });
                 }
 
                 ptr++;
@@ -60,7 +58,7 @@ public class MdParser : ILexer
 
             else if (IsBold(text, ptr))
             {
-                if (OnLeft(TokenType.Shieler, stack, ptr))
+                if (OnLeft(TokenType.BackSlash, stack, ptr))
                 {
                     stack.Pop();
                     result.Add(new Token("__", TokenType.Bold) { StartIndex = ptr });
@@ -75,7 +73,7 @@ public class MdParser : ILexer
 
             else if (IsItalic(text, ptr))
             {
-                if (OnLeft(TokenType.Shieler, stack, ptr))
+                if (OnLeft(TokenType.BackSlash, stack, ptr))
                 {
                     stack.Pop();
                     result.Add(new Token("_", TokenType.Italic) { StartIndex = ptr });
@@ -116,23 +114,27 @@ public class MdParser : ILexer
             return;
         }
 
-        for (int i = 0; i < possibleCorrectPair.Count; i++)
-        for (int j = 0; j < possibleCorrectPair.Count; j++)
+        for (var i = 0; i < possibleCorrectPair.Count; i++)
         {
-            if (i == j) continue;
-            if (possibleCorrectPair[i].IntersectWith(possibleCorrectPair[j]) ||
-                possibleCorrectPair[i].IsInside(possibleCorrectPair[j]) &&
-                possibleCorrectPair[i].Start.Type == TokenType.Bold)
+            possibleCorrectPair[i].Start.IsTag = true;
+            possibleCorrectPair[i].End.IsTag = true;
+            for (var j = 0; j < possibleCorrectPair.Count; j++)
             {
+                if (i == j) continue;
+                if (TagsCorrect(possibleCorrectPair[i], possibleCorrectPair[j])) continue;
                 possibleCorrectPair[i].Start.IsTag = false;
                 possibleCorrectPair[i].End.IsTag = false;
 
                 break;
             }
-
-            possibleCorrectPair[i].Start.IsTag = true;
-            possibleCorrectPair[i].End.IsTag = true;
         }
+    }
+
+    private static bool TagsCorrect(PairToken firstToken, PairToken secondToken)
+    {
+        return !firstToken.IntersectWith(secondToken) &&
+               (!firstToken.IsInside(secondToken) ||
+                firstToken.Start.Type != TokenType.Bold);
     }
 
     private static bool IsBold(string text, int ptr)
@@ -183,9 +185,9 @@ public class MdParser : ILexer
         return bold;
     }
 
-    private static bool OnRightSpace(int ptr, string text, Token bold)
+    private static bool OnRightSpace(int ptr, string text, Token token)
     {
-        return ptr + bold.Lenght < text.Length && char.IsWhiteSpace(text[ptr + bold.Lenght]);
+        return ptr + token.Lenght < text.Length && char.IsWhiteSpace(text[ptr + token.Lenght]);
     }
 
     private static Token CreateCloseToken(int ptr, string text, List<PairToken> possibleTags, TokenType type,
