@@ -22,10 +22,5 @@ public class PairToken(Token start, Token end)
         return Start.StartIndex > token.Start.StartIndex &&
                End.StartIndex < token.End.StartIndex;
     }
-
-    public void AsTag()
-    {
-        start.IsTag = true;
-        end.IsTag = true;
-    }
+    
 }
