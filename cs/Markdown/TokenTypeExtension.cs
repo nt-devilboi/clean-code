@@ -11,7 +11,7 @@ public static class TokenTypeExtension
     private static Dictionary<TokenType, Func<char, bool>> _possibleCharTokenType =
         new()
         {
-            { TokenType.Word, c => char.IsLetter(c) || char.IsSymbol(c) },
+            { TokenType.Word, c => char.IsLetter(c) || char.IsSymbol(c) || char.IsPunctuation(c) && c != '_' },
             { TokenType.Digit, char.IsDigit }
         };
 

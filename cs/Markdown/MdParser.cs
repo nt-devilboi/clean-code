@@ -12,6 +12,7 @@ public class MdParser : ILexer
     {
         var result = new List<Token>();
         var ptr = 0;
+        var tokenPtr = 0;
         var stack = new Stack<Token>();
         var pairTags = new List<PairToken>();
         while (ptr < text.Length)
@@ -93,7 +94,7 @@ public class MdParser : ILexer
                 result.Add(word);
                 ptr += word.Lenght;
             }
-            
+
             else ptr++;
         }
 
@@ -176,7 +177,7 @@ public class MdParser : ILexer
             stack.Push(newBold);
             return newBold;
         }
-        
+
         var bold = type.CreateTokenMd(ptr);
         if (!OnRightSpace(ptr, text, bold)) stack.Push(bold);
         return bold;

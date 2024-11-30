@@ -4,8 +4,8 @@ namespace Markdown.NodeElement;
 
 public class PairToken(Token start, Token end)
 {
-    public Token Start { get; init; } = start;
-    public Token End { get; init; } = end;
+    public Token Start { get; } = start;
+    public Token End { get; } = end;
 
     public bool IntersectWith(PairToken token)
     {
