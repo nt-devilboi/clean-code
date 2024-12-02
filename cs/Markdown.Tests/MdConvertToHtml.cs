@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using FluentAssertions;
 
 namespace Markdown.Tests;
@@ -56,8 +57,10 @@ public class MdConvertToHtml
         yield return new TestCaseData(@"\__Hello__", "__Hello__").SetName("EscapedDoubleUnderscore");
         yield return new TestCaseData(@"\_Hello_", "_Hello_").SetName("EscapedUnderscore");
         yield return new TestCaseData(@"\\_Hello_", @"\<em>Hello</em>").SetName("EscapedWithItalic");
-        yield return new TestCaseData(@"_Hello_ \_outerwile_", @"<em>Hello</em> _outerwile_").SetName("EscapedItalicInCenter");
-        yield return new TestCaseData(@"_Hello \_outerwile_", @"<em>Hello _outerwile</em>").SetName("EscapedItalicBetweenItalic");
+        yield return new TestCaseData(@"_Hello_ \_outerwile_", @"<em>Hello</em> _outerwile_").SetName(
+            "EscapedItalicInCenter");
+        yield return new TestCaseData(@"_Hello \_outerwile_", @"<em>Hello _outerwile</em>").SetName(
+            "EscapedItalicBetweenItalic");
     }
 
     private static IEnumerable<TestCaseData> ComplexNestedTags()
@@ -83,7 +86,7 @@ public class MdConvertToHtml
             "<h1><strong>This <em>is</em> a</strong> _complex _nested_ _test__ with #escapes__</h1>"
         ).SetName("ComplexNestedTagsWithEscapes");
     }
-    
+
     [TestCaseSource(nameof(AdvancedComplexTestCases))]
     [TestCaseSource(nameof(HeaderTestCases))]
     [TestCaseSource(nameof(SimpleTagTestCases))]
@@ -106,13 +109,56 @@ public class MdConvertToHtml
         var unicodeSymbols = Enumerable.Range(0, 10000)
             .Select(char.ConvertFromUtf32).Where(x => x != "\\") // убрал его, так как это экраннирование
             .Aggregate((a, b) => a + b); // Собираем в строку
-        
 
 
         foreach (var chunk in Chunk(unicodeSymbols, 1000))
         {
             Parser.Render(chunk).Should().Be(chunk);
         }
+    }
+
+    [Test]
+    public void Algorithm_ShouldWorkInLinearTime()
+    {
+        var sizes = new[] { 1000, 2000, 4000, 8000, 16000 };
+
+       
+        var timings = GetTimesTests(sizes);
+        
+        for (int i = 1; i < timings.Count; i++)
+        {
+            var ratio = timings[i] / timings[i - 1];
+        
+            ratio.Should().BeLessThanOrEqualTo(2.5); // в два раза каждый следующий тест работает дольше (0.5 погрешность).
+        }
+    }
+
+    private List<double> GetTimesTests(int[] sizes)
+    {
+        var timings = new List<double>();
+
+        foreach (var size in sizes)
+        {
+            var input = GenerateInput(size);
+
+            var stopwatch = Stopwatch.StartNew();
+            Algorithm(input);
+            stopwatch.Stop();
+
+            timings.Add(stopwatch.Elapsed.TotalMilliseconds);
+        }
+
+        return timings;
+    }
+
+    private string GenerateInput(int size)
+    {
+        return new string('a', size);
+    }
+
+    private void Algorithm(string input)
+    {
+        Parser.Render(input);
     }
 
     private static IEnumerable<string> Chunk(string input, int chunkSize)

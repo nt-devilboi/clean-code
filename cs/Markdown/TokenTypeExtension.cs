@@ -8,16 +8,21 @@ public static class TokenTypeExtension
         { TokenType.Italic, "_" }
     };
 
-    private static readonly Dictionary<TokenType, Func<char, bool>> _possibleCharTokenType =
+    private static readonly Dictionary<TokenType, Func<string, bool>> _possibleCharTokenType =
         new()
         {
-            { TokenType.Word, c => (!char.IsSurrogate(c) && c != '_') && c != '\n' && c != ' ' && c != '\\' },
-            { TokenType.Digit, char.IsDigit },
-            { TokenType.WhiteSpace, char.IsWhiteSpace }
+            { TokenType.Word, c => (!char.IsSurrogate(c[0]) && c[0] != '_') && c[0] != '\n' && c[0] != ' ' && c[0] != '\\' },
+            { TokenType.Digit, c => char.IsDigit(c[0]) },
+            { TokenType.WhiteSpace, c => char.IsWhiteSpace(c[0]) },
+            { TokenType.Italic, c => c[0] == '_' },
+            { TokenType.NewLine, c => c[0] == '_' },
+            { TokenType.BackSlash, c => c[0] == '\\' },
+            { TokenType.Header, c => c[0] == '#' && c[1] == ' ' }
         };
 
     public static Token CreateTokenMd(this TokenType type, int ptr) =>
         new Token(_valueTokenTypeMd[type], type) { StartIndex = ptr };
 
-    public static bool IsMatch(this TokenType type, char c) => _possibleCharTokenType[type](c);
+    public static bool IsMatch(this TokenType type, char c) => _possibleCharTokenType[type](c.ToString());
+    public static bool IsMatch(this TokenType type, string c) => _possibleCharTokenType[type](c);
 }

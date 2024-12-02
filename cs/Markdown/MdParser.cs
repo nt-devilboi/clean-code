@@ -15,7 +15,7 @@ public class MdParser : ILexer
         var pairTags = new List<PairToken>();
         while (ptr < text.Length)
         {
-            if ('#' == text[ptr] && ' ' == text[ptr + 1] && (ptr == 0 || text[ptr - 1] == '\n'))
+            if (ptr + 2 < text.Length && TokenType.Header.IsMatch(text.Substring(ptr, 2)))
             {
                 var headerStart = new Token("# ", TokenType.Header)
                     { StartIndex = ptr, IsTag = true };
@@ -24,15 +24,14 @@ public class MdParser : ILexer
                 ptr += headerStart.Lenght;
             }
 
-
-            else if (char.IsDigit(text[ptr]))
+            else if (TokenType.Digit.IsMatch(text[ptr]))
             {
                 var tokenText = CreateSimpleToken(TokenType.Digit, ptr, text);
                 result.Add(tokenText);
                 ptr += tokenText.Lenght;
             }
 
-            else if (text[ptr] == '\\')
+            else if (TokenType.BackSlash.IsMatch(text[ptr]))
             {
                 if (OnLeft(TokenType.BackSlash, stack, ptr))
                 {
@@ -81,7 +80,7 @@ public class MdParser : ILexer
                 ptr += 2;
             }
 
-            else if (IsItalic(text, ptr))
+            else if (TokenType.Italic.IsMatch(text[ptr]))
             {
                 if (OnLeft(TokenType.BackSlash, stack, ptr))
                 {
@@ -116,12 +115,7 @@ public class MdParser : ILexer
     }
 
 
-
-
-    private static bool IsItalic(string text, int ptr)
-    {
-        return '_' == text[ptr];
-    }
+  
 
     private static void SetCorrectTags(List<PairToken> possibleCorrectPair)
     {
