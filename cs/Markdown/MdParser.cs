@@ -116,6 +116,8 @@ public class MdParser : ILexer
     }
 
 
+
+
     private static bool IsItalic(string text, int ptr)
     {
         return '_' == text[ptr];
@@ -191,10 +193,10 @@ public class MdParser : ILexer
                 return closeToken;
             }
 
-            var newBold = type.CreateTokenMd(ptr);
+            var newToken = type.CreateTokenMd(ptr);
             stack.Push(prevToken);
-            stack.Push(newBold);
-            return newBold;
+            if (!OnRightSpace(ptr, text, newToken)) stack.Push(newToken);
+            return newToken;
         }
 
         var bold = type.CreateTokenMd(ptr);

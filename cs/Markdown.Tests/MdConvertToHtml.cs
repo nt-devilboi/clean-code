@@ -56,7 +56,8 @@ public class MdConvertToHtml
         yield return new TestCaseData(@"\__Hello__", "__Hello__").SetName("EscapedDoubleUnderscore");
         yield return new TestCaseData(@"\_Hello_", "_Hello_").SetName("EscapedUnderscore");
         yield return new TestCaseData(@"\\_Hello_", @"\<em>Hello</em>").SetName("EscapedWithItalic");
-        yield return new TestCaseData(@"_Hello_ \_outerwile_", @"<em>Hello</em> _outerwile_").SetName("EscapedWithItalic");
+        yield return new TestCaseData(@"_Hello_ \_outerwile_", @"<em>Hello</em> _outerwile_").SetName("EscapedItalicInCenter");
+        yield return new TestCaseData(@"_Hello \_outerwile_", @"<em>Hello _outerwile</em>").SetName("EscapedItalicBetweenItalic");
     }
 
     private static IEnumerable<TestCaseData> ComplexNestedTags()
@@ -69,6 +70,7 @@ public class MdConvertToHtml
     private static IEnumerable<TestCaseData> UnderscoreEdgeCases()
     {
         yield return new TestCaseData("__ hello.__", "__ hello.__").SetName("Bold_ShouldBe_StartWhenNearSymbol");
+        yield return new TestCaseData("s__ hello.__", "s__ hello.__").SetName("s__ hello.__ -> s__ hello.__");
         yield return new TestCaseData("__hello __", "__hello __").SetName("Bold_ShouldBe_EndWhenNearSymbol");
         yield return new TestCaseData("_ outer_", "_ outer_").SetName("Italic_ShouldBe_StartWhenNearSymbol");
         yield return new TestCaseData("_outer _", "_outer _").SetName("Italic_ShouldBe_EndWhenNearSymbol");
@@ -78,7 +80,7 @@ public class MdConvertToHtml
     {
         yield return new TestCaseData(
             @"# __This _is_ a__ _complex \_nested\_ _test__ with \#escapes__",
-            "<h1><strong>This <em>is</em> a</strong> <em>complex _nested_ <em>test</em></em> with #escapes__</h1>"
+            "<h1><strong>This <em>is</em> a</strong> _complex _nested_ _test__ with #escapes__</h1>"
         ).SetName("ComplexNestedTagsWithEscapes");
     }
     
@@ -102,13 +104,12 @@ public class MdConvertToHtml
     public void CheckUtf()
     {
         var unicodeSymbols = Enumerable.Range(0, 10000)
-            .Select(char.ConvertFromUtf32)
+            .Select(char.ConvertFromUtf32).Where(x => x != "\\") // убрал его, так как это экраннирование
             .Aggregate((a, b) => a + b); // Собираем в строку
+        
 
-        var chunks = Chunk(unicodeSymbols, 1000);
 
-
-        foreach (var chunk in chunks)
+        foreach (var chunk in Chunk(unicodeSymbols, 1000))
         {
             Parser.Render(chunk).Should().Be(chunk);
         }
