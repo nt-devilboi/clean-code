@@ -50,7 +50,7 @@ public class MdParserTests
             new Token("# ", TokenType.Header) { StartIndex = 0, IsTag = true },
             new Token("hello", TokenType.Word) { StartIndex = 2 },
             new Token("\n", TokenType.NewLine) { StartIndex = 7, IsTag = true },
-            new Token(" ", TokenType.Space) { StartIndex = 8 },
+            new Token(" ", TokenType.WhiteSpace) { StartIndex = 8 },
             new Token("hi", TokenType.Word) { StartIndex = 9, IsTag = false }
         ]);
     }
@@ -67,7 +67,7 @@ public class MdParserTests
         tokens.Should().BeEquivalentTo([
             new Token("__", TokenType.Bold) { StartIndex = 0, IsTag = true },
             new Token("bold", TokenType.Word) { StartIndex = 2 },
-            new Token(" ", TokenType.Space) { StartIndex = 6 },
+            new Token(" ", TokenType.WhiteSpace) { StartIndex = 6 },
             new Token("text", TokenType.Word) { StartIndex = 7 },
             new Token("__", TokenType.Bold) { StartIndex = 11, IsTag = true }
         ]);
@@ -128,7 +128,7 @@ public class MdParserTests
         tokens.Should().BeEquivalentTo([
             new Token("_", TokenType.Italic) { StartIndex = 0, IsTag = true },
             new Token("italic", TokenType.Word) { StartIndex = 1 },
-            new Token(" ", TokenType.Space) { StartIndex = 7 },
+            new Token(" ", TokenType.WhiteSpace) { StartIndex = 7 },
             new Token("text", TokenType.Word) { StartIndex = 8 },
             new Token("_", TokenType.Italic) { StartIndex = 12, IsTag = true }
         ]);
@@ -145,11 +145,11 @@ public class MdParserTests
         tokens.Should().BeEquivalentTo([
             new Token("__", TokenType.Bold) { StartIndex = 0, IsTag = true },
             new Token("bold", TokenType.Word) { StartIndex = 2 },
-            new Token(" ", TokenType.Space) { StartIndex = 6 },
+            new Token(" ", TokenType.WhiteSpace) { StartIndex = 6 },
             new Token("_", TokenType.Italic) { StartIndex = 7, IsTag = true },
             new Token("italic", TokenType.Word) { StartIndex = 8 },
             new Token("_", TokenType.Italic) { StartIndex = 14, IsTag = true },
-            new Token(" ", TokenType.Space) { StartIndex = 15 },
+            new Token(" ", TokenType.WhiteSpace) { StartIndex = 15 },
             new Token("text", TokenType.Word) { StartIndex = 16 },
             new Token("__", TokenType.Bold) { StartIndex = 20, IsTag = true }
         ]);
@@ -166,18 +166,28 @@ public class MdParserTests
         tokens.Should().BeEquivalentTo([
             new Token("_", TokenType.Italic) { StartIndex = 0 },
             new Token("hi", TokenType.Word) { StartIndex = 1 },
-            new Token(" ", TokenType.Space) { StartIndex = 3 },
+            new Token(" ", TokenType.WhiteSpace) { StartIndex = 3 },
             new Token("__", TokenType.Bold) { StartIndex = 4 },
             new Token("bold", TokenType.Word) { StartIndex = 6 },
-            new Token(" ", TokenType.Space) { StartIndex = 10 },
+            new Token(" ", TokenType.WhiteSpace) { StartIndex = 10 },
             new Token("t", TokenType.Word) { StartIndex = 11 },
             new Token("_", TokenType.Italic) { StartIndex = 12 },
-            new Token(" ", TokenType.Space) { StartIndex = 13 },
+            new Token(" ", TokenType.WhiteSpace) { StartIndex = 13 },
             new Token("k", TokenType.Word) { StartIndex = 14 },
             new Token("__", TokenType.Bold) { StartIndex = 15 }
         ]);
     }
+    [Test]
+    public void MdParser_ParseTags_WhiteSpaces()
+    {
+        var text = "   ";
 
+        var tokens = lexer.Tokenize(text);
+
+        tokens.Should().BeEquivalentTo([
+            new Token("   ", TokenType.WhiteSpace) { StartIndex = 0 },
+        ]);
+    }
 
     [Test]
     public void MdParser_ParseTags_BoldWithStartItalic()
@@ -206,11 +216,11 @@ public class MdParserTests
         tokens.Should().BeEquivalentTo([
             new Token("_", TokenType.Italic) { StartIndex = 0, IsTag = true },
             new Token("italic", TokenType.Word) { StartIndex = 1 },
-            new Token(" ", TokenType.Space) { StartIndex = 7 },
+            new Token(" ", TokenType.WhiteSpace) { StartIndex = 7 },
             new Token("__", TokenType.Bold) { StartIndex = 8 },
             new Token("bold", TokenType.Word) { StartIndex = 10 },
             new Token("__", TokenType.Bold) { StartIndex = 14 },
-            new Token(" ", TokenType.Space) { StartIndex = 16 },
+            new Token(" ", TokenType.WhiteSpace) { StartIndex = 16 },
             new Token("text", TokenType.Word) { StartIndex = 17 },
             new Token("_", TokenType.Italic) { StartIndex = 21, IsTag = true }
         ]);

@@ -27,7 +27,7 @@ public class MdParser : ILexer
 
             else if (char.IsDigit(text[ptr]))
             {
-                var tokenText = CreateTokenText(TokenType.Digit, ptr, text);
+                var tokenText = CreateSimpleToken(TokenType.Digit, ptr, text);
                 result.Add(tokenText);
                 ptr += tokenText.Lenght;
             }
@@ -53,10 +53,11 @@ public class MdParser : ILexer
                 ptr++;
             }
 
-            else if (' ' == text[ptr])
+            else if (TokenType.WhiteSpace.IsMatch(text[ptr]))
             {
-                result.Add(new Token(" ", TokenType.Space) { StartIndex = ptr });
-                ptr++;
+                var token = CreateSimpleToken(TokenType.WhiteSpace, ptr, text);
+                result.Add(token);
+                ptr += token.Lenght;
             }
 
             else if (IsBold(text, ptr))
@@ -102,7 +103,7 @@ public class MdParser : ILexer
 
             else if (TokenType.Word.IsMatch(text[ptr]))
             {
-                var word = CreateTokenText(TokenType.Word, ptr, text);
+                var word = CreateSimpleToken(TokenType.Word, ptr, text);
                 result.Add(word);
                 ptr += word.Lenght;
             }
@@ -113,6 +114,7 @@ public class MdParser : ILexer
         SetCorrectTags(pairTags);
         return ImmutableList.CreateRange(result);
     }
+
 
     private static bool IsItalic(string text, int ptr)
     {
@@ -222,11 +224,11 @@ public class MdParser : ILexer
         return true;
     }
 
-    private Token CreateTokenText(TokenType tokenType, int ptr, string text)
+    private Token CreateSimpleToken(TokenType tokenType, int ptr, string text)
     {
         var start = ptr;
         var end = start;
-        
+
         while (ptr < text.Length && tokenType.IsMatch(text[ptr]))
         {
             end = ++ptr;

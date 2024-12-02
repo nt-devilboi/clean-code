@@ -56,6 +56,7 @@ public class MdConvertToHtml
         yield return new TestCaseData(@"\__Hello__", "__Hello__").SetName("EscapedDoubleUnderscore");
         yield return new TestCaseData(@"\_Hello_", "_Hello_").SetName("EscapedUnderscore");
         yield return new TestCaseData(@"\\_Hello_", @"\<em>Hello</em>").SetName("EscapedWithItalic");
+        yield return new TestCaseData(@"_Hello_ \_outerwile_", @"<em>Hello</em> _outerwile_").SetName("EscapedWithItalic");
     }
 
     private static IEnumerable<TestCaseData> ComplexNestedTags()
@@ -73,14 +74,16 @@ public class MdConvertToHtml
         yield return new TestCaseData("_outer _", "_outer _").SetName("Italic_ShouldBe_EndWhenNearSymbol");
     }
 
-    private static IEnumerable<TestCaseData> RandomSymbols()
+    private static IEnumerable<TestCaseData> AdvancedComplexTestCases()
     {
-        yield return new TestCaseData("__he._k?&__", "<strong>he._k?&</strong>");
-        yield return new TestCaseData("__<#!+._k?&__", "<strong><#!+._k?&</strong>");
+        yield return new TestCaseData(
+            @"# __This _is_ a__ _complex \_nested\_ _test__ with \#escapes__",
+            "<h1><strong>This <em>is</em> a</strong> <em>complex _nested_ <em>test</em></em> with #escapes__</h1>"
+        ).SetName("ComplexNestedTagsWithEscapes");
     }
-
+    
+    [TestCaseSource(nameof(AdvancedComplexTestCases))]
     [TestCaseSource(nameof(HeaderTestCases))]
-    [TestCaseSource(nameof(RandomSymbols))]
     [TestCaseSource(nameof(SimpleTagTestCases))]
     [TestCaseSource(nameof(NestedTagTestCases))]
     [TestCaseSource(nameof(SpecialCases))]
@@ -96,7 +99,7 @@ public class MdConvertToHtml
     }
 
     [Test]
-    public void Symbols()
+    public void CheckUtf()
     {
         var unicodeSymbols = Enumerable.Range(0, 10000)
             .Select(char.ConvertFromUtf32)

@@ -3,7 +3,7 @@ namespace Markdown;
 public enum TokenType
 {
     Header,
-    Space,
+    WhiteSpace,
     NewLine,
     Italic,
     Bold,

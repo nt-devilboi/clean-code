@@ -30,12 +30,9 @@ public abstract class TokenMdConverter
         var stringBuilder = new StringBuilder();
         var stack = new Stack<Token>();
 
-        var prevTokenEndIndex = 0;
         foreach (var token in tokens)
         {
-            var countSpace = GetSpaceBetween(token.StartIndex, prevTokenEndIndex);
-            stringBuilder.Append(Enumerable.Repeat(' ', countSpace).ToArray());
-
+          
             if (token is { IsTag: false }) stringBuilder.Append(token.Value);
             
             else if (token is { Type: TokenType.Italic })
@@ -64,8 +61,6 @@ public abstract class TokenMdConverter
 
                 stringBuilder.Append('\n');
             }
-            
-            prevTokenEndIndex = token.EndIndex;
         }
 
         if (stack.TryPeek(out var header) && header.Type == TokenType.Header) stringBuilder.Append(closeTagConvert[TokenType.Header]);

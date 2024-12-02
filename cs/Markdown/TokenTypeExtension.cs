@@ -11,8 +11,9 @@ public static class TokenTypeExtension
     private static readonly Dictionary<TokenType, Func<char, bool>> _possibleCharTokenType =
         new()
         {
-            { TokenType.Word, c => (!char.IsSurrogate(c) && c != '_') && c != '\n' && c != ' '},
-            { TokenType.Digit, char.IsDigit }
+            { TokenType.Word, c => (!char.IsSurrogate(c) && c != '_') && c != '\n' && c != ' ' },
+            { TokenType.Digit, char.IsDigit },
+            { TokenType.WhiteSpace, char.IsWhiteSpace }
         };
 
     public static Token CreateTokenMd(this TokenType type, int ptr) =>
