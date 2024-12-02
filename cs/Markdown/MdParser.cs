@@ -46,7 +46,7 @@ public class MdParser : ILexer
                 ptr++;
             }
 
-            else if ('\n' == text[ptr])
+            else if (TokenType.NewLine.IsMatch(text[ptr]))
             {
                 result.Add(CreateTokenNewLine(stack, ptr));
                 ptr++;
@@ -59,7 +59,7 @@ public class MdParser : ILexer
                 ptr += token.Lenght;
             }
 
-            else if (IsBold(text, ptr))
+            else if (ptr + 1 < text.Length && TokenType.Bold.IsMatch(text.Substring(ptr, 2)))
             {
                 if (OnLeft(TokenType.BackSlash, stack, ptr))
                 {
@@ -115,8 +115,6 @@ public class MdParser : ILexer
     }
 
 
-  
-
     private static void SetCorrectTags(List<PairToken> possibleCorrectPair)
     {
         if (possibleCorrectPair.Count == 1)
@@ -148,10 +146,7 @@ public class MdParser : ILexer
                (!firstToken.Contain(secondToken) ||
                 firstToken.Start.Type != TokenType.Bold);
     }
-
-    private static bool IsBold(string text, int ptr)
-        => ptr + 1 < text.Length && '_' == text[ptr] && '_' == text[ptr + 1];
-
+    
     private static bool OnLeft(TokenType tokenType, Stack<Token> stack, int ptr)
     {
         return stack.TryPeek(out var token) && token.Type == tokenType && token.StartIndex + 1 == ptr;
