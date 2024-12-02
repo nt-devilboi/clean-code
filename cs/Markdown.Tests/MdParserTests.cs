@@ -27,7 +27,6 @@ public class MdParserTests
     }
 
 
-
     [Test]
     public void MdParser_ParseTag_HeaderWithTextWithNewLine() // Тест на заголовок с текстом и переносом строки
     {
@@ -42,7 +41,8 @@ public class MdParserTests
 
 
     [Test]
-    public void MdParser_ParseTag_HeaderWithTextWithNewLineAndText() // Тест на заголовок с текстом, переносом строки и последующим текстом
+    public void
+        MdParser_ParseTag_HeaderWithTextWithNewLineAndText() // Тест на заголовок с текстом, переносом строки и последующим текстом
     {
         var tokens = lexer.Tokenize("# hello\n hi");
 
@@ -50,6 +50,7 @@ public class MdParserTests
             new Token("# ", TokenType.Header) { StartIndex = 0, IsTag = true },
             new Token("hello", TokenType.Word) { StartIndex = 2 },
             new Token("\n", TokenType.NewLine) { StartIndex = 7, IsTag = true },
+            new Token(" ", TokenType.Space) { StartIndex = 8 },
             new Token("hi", TokenType.Word) { StartIndex = 9, IsTag = false }
         ]);
     }
@@ -63,13 +64,13 @@ public class MdParserTests
         var tokens = lexer.Tokenize(text);
 
 
-        tokens.Should().BeEquivalentTo(new[]
-        {
+        tokens.Should().BeEquivalentTo([
             new Token("__", TokenType.Bold) { StartIndex = 0, IsTag = true },
             new Token("bold", TokenType.Word) { StartIndex = 2 },
+            new Token(" ", TokenType.Space) { StartIndex = 6 },
             new Token("text", TokenType.Word) { StartIndex = 7 },
             new Token("__", TokenType.Bold) { StartIndex = 11, IsTag = true }
-        });
+        ]);
     }
 
     [Test]
@@ -80,9 +81,9 @@ public class MdParserTests
         var tokens = lexer.Tokenize(text);
 
         tokens.Should().BeEquivalentTo([
-            new Token("_", TokenType.Italic) { StartIndex = 0 },
+            new Token("_", TokenType.Italic) { StartIndex = 0, IsTag = true },
             new Token("1234", TokenType.Digit) { StartIndex = 1 },
-            new Token("_", TokenType.Italic) { StartIndex = 5 }
+            new Token("_", TokenType.Italic) { StartIndex = 5, IsTag = true }
         ]);
     }
 
@@ -127,6 +128,7 @@ public class MdParserTests
         tokens.Should().BeEquivalentTo([
             new Token("_", TokenType.Italic) { StartIndex = 0, IsTag = true },
             new Token("italic", TokenType.Word) { StartIndex = 1 },
+            new Token(" ", TokenType.Space) { StartIndex = 7 },
             new Token("text", TokenType.Word) { StartIndex = 8 },
             new Token("_", TokenType.Italic) { StartIndex = 12, IsTag = true }
         ]);
@@ -143,9 +145,11 @@ public class MdParserTests
         tokens.Should().BeEquivalentTo([
             new Token("__", TokenType.Bold) { StartIndex = 0, IsTag = true },
             new Token("bold", TokenType.Word) { StartIndex = 2 },
+            new Token(" ", TokenType.Space) { StartIndex = 6 },
             new Token("_", TokenType.Italic) { StartIndex = 7, IsTag = true },
             new Token("italic", TokenType.Word) { StartIndex = 8 },
             new Token("_", TokenType.Italic) { StartIndex = 14, IsTag = true },
+            new Token(" ", TokenType.Space) { StartIndex = 15 },
             new Token("text", TokenType.Word) { StartIndex = 16 },
             new Token("__", TokenType.Bold) { StartIndex = 20, IsTag = true }
         ]);
@@ -162,10 +166,13 @@ public class MdParserTests
         tokens.Should().BeEquivalentTo([
             new Token("_", TokenType.Italic) { StartIndex = 0 },
             new Token("hi", TokenType.Word) { StartIndex = 1 },
+            new Token(" ", TokenType.Space) { StartIndex = 3 },
             new Token("__", TokenType.Bold) { StartIndex = 4 },
             new Token("bold", TokenType.Word) { StartIndex = 6 },
+            new Token(" ", TokenType.Space) { StartIndex = 10 },
             new Token("t", TokenType.Word) { StartIndex = 11 },
             new Token("_", TokenType.Italic) { StartIndex = 12 },
+            new Token(" ", TokenType.Space) { StartIndex = 13 },
             new Token("k", TokenType.Word) { StartIndex = 14 },
             new Token("__", TokenType.Bold) { StartIndex = 15 }
         ]);
@@ -196,42 +203,17 @@ public class MdParserTests
 
         var tokens = lexer.Tokenize(text);
 
-        tokens.Should().BeEquivalentTo(new[]
-        {
+        tokens.Should().BeEquivalentTo([
             new Token("_", TokenType.Italic) { StartIndex = 0, IsTag = true },
             new Token("italic", TokenType.Word) { StartIndex = 1 },
+            new Token(" ", TokenType.Space) { StartIndex = 7 },
             new Token("__", TokenType.Bold) { StartIndex = 8 },
             new Token("bold", TokenType.Word) { StartIndex = 10 },
             new Token("__", TokenType.Bold) { StartIndex = 14 },
+            new Token(" ", TokenType.Space) { StartIndex = 16 },
             new Token("text", TokenType.Word) { StartIndex = 17 },
             new Token("_", TokenType.Italic) { StartIndex = 21, IsTag = true }
-        });
+        ]);
     }
 
-
-    [TestCaseSource(nameof(FirstLineTestCases))]
-    public void MdParser_ParseTags_OnFirstLine(string text, Token expectedToken)
-    {
-        lexer.Tokenize(text)[0].Should().Be(expectedToken);
-    }
-
-
-    public static IEnumerable<TestCaseData> FirstLineTestCases()
-    {
-        yield return new TestCaseData("# ",
-                new Token("# ", TokenType.Header) { StartIndex = 0, IsTag = true })
-            .SetName("Header With Single Hash");
-
-        yield return new TestCaseData("_ ", new Token("_", TokenType.Italic) { StartIndex = 0 })
-            .SetName("Header With newLine after Space");
-
-        yield return new TestCaseData("__", new Token("__", TokenType.Bold) { StartIndex = 0 })
-            .SetName("Header With newLine without Space");
-
-        yield return new TestCaseData("OuterWild", new Token("OuterWild", TokenType.Word) { StartIndex = 0 })
-            .SetName("Header With newLine without Space");
-
-        yield return new TestCaseData("1312", new Token("1312", TokenType.Digit) { StartIndex = 0 })
-            .SetName("Header With newLine without Space");
-    }
 }

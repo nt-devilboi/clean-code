@@ -17,7 +17,7 @@ public class PairToken(Token start, Token end)
                token.Start.StartIndex < Start.StartIndex;
     }
 
-    public bool IsInside(PairToken token)
+    public bool Contain(PairToken token)
     {
         return Start.StartIndex > token.Start.StartIndex &&
                End.StartIndex < token.End.StartIndex;

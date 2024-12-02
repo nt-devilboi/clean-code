@@ -24,15 +24,12 @@ public class MdParser : ILexer
                 ptr += headerStart.Lenght;
             }
 
+
             else if (char.IsDigit(text[ptr]))
             {
                 var tokenText = CreateTokenText(TokenType.Digit, ptr, text);
                 result.Add(tokenText);
                 ptr += tokenText.Lenght;
-                if (stack.TryPeek(out var token) && token.Type is TokenType.Italic or TokenType.Bold)
-                {
-                    stack.Pop();
-                }
             }
 
             else if (text[ptr] == '\\')
@@ -56,6 +53,12 @@ public class MdParser : ILexer
                 ptr++;
             }
 
+            else if (' ' == text[ptr])
+            {
+                result.Add(new Token(" ", TokenType.Space) { StartIndex = ptr });
+                ptr++;
+            }
+
             else if (IsBold(text, ptr))
             {
                 if (OnLeft(TokenType.BackSlash, stack, ptr))
@@ -63,6 +66,12 @@ public class MdParser : ILexer
                     stack.Pop();
                     result.Add(new Token("__", TokenType.Bold) { StartIndex = ptr });
                 }
+                else if (text.Length > ptr + 2 && TokenType.Digit.IsMatch(text[ptr + 2]) &&
+                         ptr > 0 && char.IsLetter(text[ptr - 1]))
+                {
+                    result.Add(new Token("__", TokenType.Bold) { StartIndex = ptr });
+                }
+
                 else
                 {
                     result.Add(CreatePairToken(stack, ptr, text, pairTags, TokenType.Bold));
@@ -78,6 +87,11 @@ public class MdParser : ILexer
                     stack.Pop();
                     result.Add(new Token("_", TokenType.Italic) { StartIndex = ptr });
                 }
+                else if (text.Length > ptr + 1 && TokenType.Digit.IsMatch(text[ptr + 1]) &&
+                         ptr > 0 && char.IsLetter(text[ptr - 1]))
+                {
+                    result.Add(new Token("_", TokenType.Italic) { StartIndex = ptr });
+                }
                 else
                 {
                     result.Add(CreatePairToken(stack, ptr, text, pairTags, TokenType.Italic));
@@ -86,7 +100,7 @@ public class MdParser : ILexer
                 ptr++;
             }
 
-            else if (!char.IsWhiteSpace(text[ptr]))
+            else if (TokenType.Word.IsMatch(text[ptr]))
             {
                 var word = CreateTokenText(TokenType.Word, ptr, text);
                 result.Add(word);
@@ -133,7 +147,7 @@ public class MdParser : ILexer
     private static bool TagsCorrect(PairToken firstToken, PairToken secondToken)
     {
         return !firstToken.IntersectWith(secondToken) &&
-               (!firstToken.IsInside(secondToken) ||
+               (!firstToken.Contain(secondToken) ||
                 firstToken.Start.Type != TokenType.Bold);
     }
 
@@ -144,6 +158,7 @@ public class MdParser : ILexer
     {
         return stack.TryPeek(out var token) && token.Type == tokenType && token.StartIndex + 1 == ptr;
     }
+
 
     private static Token CreateTokenNewLine(Stack<Token> stack, int ptr)
     {
@@ -209,31 +224,14 @@ public class MdParser : ILexer
 
     private Token CreateTokenText(TokenType tokenType, int ptr, string text)
     {
-        var sb = new StringBuilder();
         var start = ptr;
+        var end = start;
+        
         while (ptr < text.Length && tokenType.IsMatch(text[ptr]))
         {
-            sb.Append(text[ptr++]);
+            end = ++ptr;
         }
 
-        return new Token(sb.ToString(), tokenType) { StartIndex = start };
-    }
-
-    public IElementNode GenerateTree(IReadOnlyList<Token> tokens)
-    {
-        var node = new ElementNodeNewLine();
-        var stack = new Stack<IElementNode>();
-        stack.Push(node);
-        foreach (var token in tokens)
-        {
-            var prevNode = node;
-
-            if (token.Type == TokenType.Header)
-            {
-                prevNode.NextLine = new NodeHeader();
-            }
-        }
-
-        return node.NextLine;
+        return new Token(text.Substring(start, end - start), tokenType) { StartIndex = start };
     }
 }

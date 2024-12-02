@@ -4,7 +4,7 @@ namespace Markdown.Tests;
 
 public class MdConvertToHtml
 {
-    public IMd Parser = new Md();
+    private IMd Parser = new Md();
 
     private static IEnumerable<TestCaseData> HeaderTestCases()
     {
@@ -13,7 +13,7 @@ public class MdConvertToHtml
         yield return new TestCaseData("# _hello_", "<h1><em>hello</em></h1>").SetName("ItalicInHeader");
     }
 
-     private static IEnumerable<TestCaseData> SimpleTagTestCases()
+    private static IEnumerable<TestCaseData> SimpleTagTestCases()
     {
         yield return new TestCaseData("_hello_", "<em>hello</em>").SetName("ItalicText");
         yield return new TestCaseData("__hello__", "<strong>hello</strong>").SetName("BoldText");
@@ -25,7 +25,8 @@ public class MdConvertToHtml
             .SetName("BoldWithItalicInside");
         yield return new TestCaseData("# __bold _italic_ text__", "<h1><strong>bold <em>italic</em> text</strong></h1>")
             .SetName("BoldInHeaderWithItalicInside");
-        yield return new TestCaseData("# __bold _italic_ text__\n", "<h1><strong>bold <em>italic</em> text</strong></h1>\n")
+        yield return new TestCaseData("# __bold _italic_ text__\n",
+                "<h1><strong>bold <em>italic</em> text</strong></h1>\n")
             .SetName("BoldInHeaderWithNewLine");
     }
 
@@ -44,11 +45,11 @@ public class MdConvertToHtml
 
     private static IEnumerable<TestCaseData> NumericCases()
     {
-        yield return new TestCaseData("_3231_", "_3231_").SetName("NumericInItalic");
-        yield return new TestCaseData("__3231__", "__3231__").SetName("NumericInBold");
+        yield return new TestCaseData("hello_3231_", "hello_3231_").SetName("NumericInItalic");
+        yield return new TestCaseData("outer__3231__", "outer__3231__").SetName("NumericInBold");
     }
 
-   
+
     private static IEnumerable<TestCaseData> BackSlashCases()
     {
         yield return new TestCaseData(@"\\", @"\").SetName("BackslashEscape");
@@ -71,7 +72,7 @@ public class MdConvertToHtml
         yield return new TestCaseData("_ outer_", "_ outer_").SetName("Italic_ShouldBe_StartWhenNearSymbol");
         yield return new TestCaseData("_outer _", "_outer _").SetName("Italic_ShouldBe_EndWhenNearSymbol");
     }
-    
+
     private static IEnumerable<TestCaseData> RandomSymbols()
     {
         yield return new TestCaseData("__he._k?&__", "<strong>he._k?&</strong>");
@@ -92,5 +93,29 @@ public class MdConvertToHtml
     {
         var result = Parser.Render(input);
         result.Should().BeEquivalentTo(expected);
+    }
+
+    [Test]
+    public void Symbols()
+    {
+        var unicodeSymbols = Enumerable.Range(0, 10000)
+            .Select(char.ConvertFromUtf32)
+            .Aggregate((a, b) => a + b); // Собираем в строку
+
+        var chunks = Chunk(unicodeSymbols, 1000);
+
+
+        foreach (var chunk in chunks)
+        {
+            Parser.Render(chunk).Should().Be(chunk);
+        }
+    }
+
+    private static IEnumerable<string> Chunk(string input, int chunkSize)
+    {
+        for (int i = 0; i < input.Length; i += chunkSize)
+        {
+            yield return input.Substring(i, Math.Min(chunkSize, input.Length - i));
+        }
     }
 }

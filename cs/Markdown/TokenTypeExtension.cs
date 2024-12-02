@@ -2,16 +2,16 @@ namespace Markdown;
 
 public static class TokenTypeExtension
 {
-    private static Dictionary<TokenType, string> _valueTokenTypeMd = new()
+    private static readonly Dictionary<TokenType, string> _valueTokenTypeMd = new()
     {
         { TokenType.Bold, "__" },
         { TokenType.Italic, "_" }
     };
 
-    private static Dictionary<TokenType, Func<char, bool>> _possibleCharTokenType =
+    private static readonly Dictionary<TokenType, Func<char, bool>> _possibleCharTokenType =
         new()
         {
-            { TokenType.Word, c => char.IsLetter(c) || char.IsSymbol(c) || char.IsPunctuation(c) && c != '_' },
+            { TokenType.Word, c => (!char.IsSurrogate(c) && c != '_') && c != '\n' && c != ' '},
             { TokenType.Digit, char.IsDigit }
         };
 
