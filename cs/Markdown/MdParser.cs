@@ -15,61 +15,61 @@ public class MdParser : ILexer
         var pairTags = new List<PairToken>();
         while (ptr < text.Length)
         {
-            if (ptr + 2 < text.Length && TokenType.Header.IsMatch(text.Substring(ptr, 2)))
+            if (ptr + 2 < text.Length && TokenType.Header.IsMatchMd(text.Substring(ptr, 2)))
             {
-                var headerStart = new Token("# ", TokenType.Header)
-                    { StartIndex = ptr, IsTag = true };
+                var headerStart = new Token("# ", TokenType.Header, ptr)
+                    { IsTag = true };
                 result.Add(headerStart);
                 stack.Push(headerStart);
                 ptr += headerStart.Lenght;
             }
 
-            else if (TokenType.Digit.IsMatch(text[ptr]))
+            else if (TokenType.Digit.IsMatchMd(text[ptr]))
             {
                 var tokenText = CreateSimpleToken(TokenType.Digit, ptr, text);
                 result.Add(tokenText);
                 ptr += tokenText.Lenght;
             }
 
-            else if (TokenType.BackSlash.IsMatch(text[ptr]))
+            else if (TokenType.BackSlash.IsMatchMd(text[ptr]))
             {
                 if (OnLeft(TokenType.BackSlash, stack, ptr))
                 {
                     stack.Pop();
-                    result.Add(new Token(@"\", TokenType.BackSlash) { StartIndex = ptr });
+                    result.Add(new Token(@"\", TokenType.BackSlash, ptr) );
                 }
                 else
                 {
-                    stack.Push(new Token(@"\", TokenType.BackSlash) { StartIndex = ptr, IsTag = true });
+                    stack.Push(new Token(@"\", TokenType.BackSlash, ptr) { IsTag = true });
                 }
 
                 ptr++;
             }
 
-            else if ('\n' == text[ptr])
+            else if (TokenType.NewLine.IsMatchMd(text[ptr]))
             {
                 result.Add(CreateTokenNewLine(stack, ptr));
                 ptr++;
             }
 
-            else if (TokenType.WhiteSpace.IsMatch(text[ptr]))
+            else if (TokenType.WhiteSpace.IsMatchMd(text[ptr]))
             {
                 var token = CreateSimpleToken(TokenType.WhiteSpace, ptr, text);
                 result.Add(token);
                 ptr += token.Lenght;
             }
 
-            else if (IsBold(text, ptr))
+            else if (ptr + 1 < text.Length && TokenType.Bold.IsMatchMd(text.Substring(ptr, 2)))
             {
                 if (OnLeft(TokenType.BackSlash, stack, ptr))
                 {
                     stack.Pop();
-                    result.Add(new Token("__", TokenType.Bold) { StartIndex = ptr });
+                    result.Add(new Token("__", TokenType.Bold, ptr) { });
                 }
-                else if (text.Length > ptr + 2 && TokenType.Digit.IsMatch(text[ptr + 2]) &&
+                else if (text.Length > ptr + 2 && TokenType.Digit.IsMatchMd(text[ptr + 2]) &&
                          ptr > 0 && char.IsLetter(text[ptr - 1]))
                 {
-                    result.Add(new Token("__", TokenType.Bold) { StartIndex = ptr });
+                    result.Add(new Token("__", TokenType.Bold, ptr) { });
                 }
 
                 else
@@ -80,17 +80,17 @@ public class MdParser : ILexer
                 ptr += 2;
             }
 
-            else if (TokenType.Italic.IsMatch(text[ptr]))
+            else if (TokenType.Italic.IsMatchMd(text[ptr]))
             {
                 if (OnLeft(TokenType.BackSlash, stack, ptr))
                 {
                     stack.Pop();
-                    result.Add(new Token("_", TokenType.Italic) { StartIndex = ptr });
+                    result.Add(new Token("_", TokenType.Italic, ptr) { });
                 }
-                else if (text.Length > ptr + 1 && TokenType.Digit.IsMatch(text[ptr + 1]) &&
+                else if (text.Length > ptr + 1 && TokenType.Digit.IsMatchMd(text[ptr + 1]) &&
                          ptr > 0 && char.IsLetter(text[ptr - 1]))
                 {
-                    result.Add(new Token("_", TokenType.Italic) { StartIndex = ptr });
+                    result.Add(new Token("_", TokenType.Italic, ptr) { });
                 }
                 else
                 {
@@ -100,7 +100,7 @@ public class MdParser : ILexer
                 ptr++;
             }
 
-            else if (TokenType.Word.IsMatch(text[ptr]))
+            else if (TokenType.Word.IsMatchMd(text[ptr]))
             {
                 var word = CreateSimpleToken(TokenType.Word, ptr, text);
                 result.Add(word);
@@ -114,8 +114,6 @@ public class MdParser : ILexer
         return ImmutableList.CreateRange(result);
     }
 
-
-  
 
     private static void SetCorrectTags(List<PairToken> possibleCorrectPair)
     {
@@ -149,9 +147,6 @@ public class MdParser : ILexer
                 firstToken.Start.Type != TokenType.Bold);
     }
 
-    private static bool IsBold(string text, int ptr)
-        => ptr + 1 < text.Length && '_' == text[ptr] && '_' == text[ptr + 1];
-
     private static bool OnLeft(TokenType tokenType, Stack<Token> stack, int ptr)
     {
         return stack.TryPeek(out var token) && token.Type == tokenType && token.StartIndex + 1 == ptr;
@@ -165,8 +160,8 @@ public class MdParser : ILexer
             stack.Pop();
         }
 
-        return new Token("\n", TokenType.NewLine)
-            { StartIndex = ptr, IsTag = ParagraphStartWithHeader(stack) };
+        return new Token("\n", TokenType.NewLine, ptr)
+            { IsTag = ParagraphStartWithHeader(stack) };
     }
 
     private static Token CreatePairToken(Stack<Token> stack, int ptr, string text, List<PairToken> possibleTags,
@@ -225,11 +220,11 @@ public class MdParser : ILexer
         var start = ptr;
         var end = start;
 
-        while (ptr < text.Length && tokenType.IsMatch(text[ptr]))
+        while (ptr < text.Length && tokenType.IsMatchMd(text[ptr]))
         {
             end = ++ptr;
         }
 
-        return new Token(text.Substring(start, end - start), tokenType) { StartIndex = start };
+        return new Token(text.Substring(start, end - start), tokenType, start);
     }
 }

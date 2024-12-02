@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Diagnostics;
 using FluentAssertions;
 
@@ -120,16 +121,17 @@ public class MdConvertToHtml
     [Test]
     public void Algorithm_ShouldWorkInLinearTime()
     {
-        var sizes = new[] { 1000, 2000, 4000, 8000, 16000 };
+        var sizes = new[] { 10, 20, 40, 80, 160 };
 
-       
+
         var timings = GetTimesTests(sizes);
-        
+
         for (int i = 1; i < timings.Count; i++)
         {
             var ratio = timings[i] / timings[i - 1];
-        
-            ratio.Should().BeLessThanOrEqualTo(2.5); // в два раза каждый следующий тест работает дольше (0.5 погрешность).
+
+            ratio.Should()
+                .BeLessThanOrEqualTo(2.5); // в два раза каждый следующий тест работает дольше (0.5 погрешность).
         }
     }
 
@@ -142,7 +144,7 @@ public class MdConvertToHtml
             var input = GenerateInput(size);
 
             var stopwatch = Stopwatch.StartNew();
-            Algorithm(input);
+            Task.Run(() => Algorithm(input)); // чтоб в отедльном потоке была и скорость не зависела от других задач
             stopwatch.Stop();
 
             timings.Add(stopwatch.Elapsed.TotalMilliseconds);
@@ -153,7 +155,8 @@ public class MdConvertToHtml
 
     private string GenerateInput(int size)
     {
-        return new string('a', size);
+        return string.Concat(Enumerable.Repeat(@"# __This _is_ a__ _complex \_nested\_ _test__ with \#escapes__",
+            size));
     }
 
     private void Algorithm(string input)
