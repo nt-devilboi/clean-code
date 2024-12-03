@@ -32,7 +32,7 @@ public class MdParser : ILexer
 
             else if (TokenType.BackSlash.IsMatchMd(text[ptr]))
             {
-                if (OnLeft(TokenType.BackSlash, stack, ptr))
+                if (OnLeftHaveTag(TokenType.BackSlash, stack, ptr))
                 {
                     stack.Pop();
                     result.Add(new Token(@"\", TokenType.BackSlash, ptr));
@@ -125,22 +125,23 @@ public class MdParser : ILexer
             List<Token> result)
     {
         var token = type.CreateTokenMd(ptr);
-        if (OnLeft(TokenType.BackSlash, stack, ptr))
+        if (OnLeftHaveTag(TokenType.BackSlash, stack, ptr))
         {
             stack.Pop();
             result.Add(token);
             return true;
         }
 
-        if (text.Length > ptr + token.Lenght && TokenType.Digit.IsMatchMd(text[ptr + token.Lenght]) &&
-            ptr > 0 && char.IsLetter(text[ptr - 1]))
+        if (OnRightHave(TokenType.Digit, ptr + token.Lenght, text) && ptr > 0 && 
+            OnLeftHave(TokenType.Word, text[ptr - 1]))
         {
             result.Add(token);
             return true;
         }
 
-        if (ptr > 0 && TokenType.Digit.IsMatchMd(text[ptr - 1]) &&
-            text.Length > ptr + token.Lenght && char.IsLetter(text[ptr + token.Lenght]))
+        if (OnRightHave(TokenType.Word, ptr + token.Lenght, text) 
+            && ptr > 0 && TokenType.Digit.IsMatchMd(text[ptr - 1]) 
+            )
         {
             result.Add(token);
             return true;
@@ -187,7 +188,7 @@ public class MdParser : ILexer
                 firstToken.Start.Type != TokenType.Bold);
     }
 
-    private static bool OnLeft(TokenType tokenType, Stack<Token> stack, int ptr)
+    private static bool OnLeftHaveTag(TokenType tokenType, Stack<Token> stack, int ptr)
     {
         return stack.TryPeek(out var token) && token.Type == tokenType && token.StartIndex + 1 == ptr;
     }
@@ -199,7 +200,6 @@ public class MdParser : ILexer
         {
             stack.Pop();
         }
-
 
         return new Token("\n", TokenType.NewLine, ptr)
             { IsTag = ParagraphStartWithTag(stack) };
@@ -225,18 +225,23 @@ public class MdParser : ILexer
 
             var newToken = type.CreateTokenMd(ptr);
             stack.Push(prevToken);
-            if (!OnRightSpace(ptr, text, newToken)) stack.Push(newToken);
+            if (!OnRightHave(TokenType.WhiteSpace, ptr + newToken.Lenght, text)) stack.Push(newToken);
             return newToken;
         }
 
         var bold = type.CreateTokenMd(ptr);
-        if (!OnRightSpace(ptr, text, bold)) stack.Push(bold);
+        if (!OnRightHave(TokenType.WhiteSpace, ptr + bold.Lenght, text)) stack.Push(bold);
         return bold;
     }
 
-    private static bool OnRightSpace(int ptr, string text, Token token)
+    private static bool OnRightHave(TokenType tokenType, int ptr, string text)
     {
-        return ptr + token.Lenght < text.Length && char.IsWhiteSpace(text[ptr + token.Lenght]);
+        return ptr < text.Length && tokenType.IsMatchMd(text[ptr]);
+    }
+
+    private static bool OnLeftHave(TokenType tokenType, char c)
+    {
+        return tokenType.IsMatchMd(c);
     }
 
     private static Token CreateCloseToken(int ptr, string text, List<PairToken> possibleTags, TokenType type,

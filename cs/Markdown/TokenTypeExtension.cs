@@ -13,7 +13,7 @@ public static class TokenTypeExtension
         {
             {
                 TokenType.Word,
-                c => (!char.IsSurrogate(c[0]) && c[0] != '_') && c[0] != '\n' && c[0] != ' ' && c[0] != '\\'
+                c => !char.IsSurrogate(c[0]) && c[0] != '_' && c[0] != '\n' && c[0] != ' ' && c[0] != '\\'
             },
             { TokenType.Digit, c => char.IsDigit(c[0]) },
             { TokenType.WhiteSpace, c => char.IsWhiteSpace(c[0]) },
@@ -26,7 +26,7 @@ public static class TokenTypeExtension
         };
 
     public static Token CreateTokenMd(this TokenType type, int ptr) =>
-        new Token(_valueTokenTypeMd[type], type) { StartIndex = ptr };
+        new(_valueTokenTypeMd[type], type) { StartIndex = ptr };
 
     public static bool IsMatchMd(this TokenType type, char c) => _possibleCharTokenType[type](c.ToString());
     public static bool IsMatchMd(this TokenType type, string c) => _possibleCharTokenType[type](c);
