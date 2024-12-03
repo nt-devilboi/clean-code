@@ -7,21 +7,25 @@ public abstract class TokenMdConverter
 {
     private readonly Dictionary<TokenType, string> openTagConvert;
     private readonly Dictionary<TokenType, string> closeTagConvert;
-    
+
     protected TokenMdConverter()
     {
         openTagConvert = new Dictionary<TokenType, string>
         {
             { TokenType.Italic, ItalicOpen() },
             { TokenType.Bold, BoldOpen() },
-            { TokenType.Header, HeaderOpen() }
+            { TokenType.Header, HeaderOpen() },
+            { TokenType.Marker, MarkerOpen() },
+            { TokenType.MarkerRange, MarkerRangeOpen() }
         };
 
         closeTagConvert = new Dictionary<TokenType, string>()
         {
             { TokenType.Italic, ItalicClose() },
-            { TokenType.Bold, BoldClose()},
-            { TokenType.Header, HeaderClose()},
+            { TokenType.Bold, BoldClose() },
+            { TokenType.Header, HeaderClose() },
+            { TokenType.Marker, MarkerClose() },
+            { TokenType.MarkerRange, MarkerRangeClose() }
         };
     }
 
@@ -32,22 +36,33 @@ public abstract class TokenMdConverter
 
         foreach (var token in tokens)
         {
-          
             if (token is { IsTag: false }) stringBuilder.Append(token.Value);
-            
+
             else if (token is { Type: TokenType.Italic })
             {
-                AddTag(stack, stringBuilder, token, TokenType.Italic);
+                AddPairTag(stack, stringBuilder, token, TokenType.Italic);
             }
 
             else if (token is { Type: TokenType.Bold })
             {
-                AddTag(stack, stringBuilder, token, TokenType.Bold);
+                AddPairTag(stack, stringBuilder, token, TokenType.Bold);
             }
-            
-            else if (token is { Type: TokenType.Header, IsTag: true })
+
+            else if (token is { Type: TokenType.Header })
             {
                 stringBuilder.Append(openTagConvert[TokenType.Header]);
+                stack.Push(token);
+            }
+
+            else if (token is { Type: TokenType.MarkerRange })
+            {
+                AddPairTag(stack, stringBuilder, token, TokenType.MarkerRange);
+                stringBuilder.Append('\n');
+            }
+
+            else if (token is { Type: TokenType.Marker })
+            {
+                stringBuilder.Append(openTagConvert[TokenType.Marker]);
                 stack.Push(token);
             }
 
@@ -58,17 +73,38 @@ public abstract class TokenMdConverter
                     stack.Pop();
                     stringBuilder.Append(closeTagConvert[TokenType.Header]);
                 }
+                else if (stack.TryPeek(out outToken) && outToken.Type is TokenType.Marker)
+                {
+                    stack.Pop();
+                    stringBuilder.Append(closeTagConvert[TokenType.Marker]);
+                }
 
                 stringBuilder.Append('\n');
             }
         }
 
-        if (stack.TryPeek(out var header) && header.Type == TokenType.Header) stringBuilder.Append(closeTagConvert[TokenType.Header]);
+        if (stack.TryPeek(out var tokenStart) && tokenStart.Type == TokenType.Header)
+        {
+            stack.Pop();
+            stringBuilder.Append(closeTagConvert[TokenType.Header]);
+        }
+
+        if (stack.TryPeek(out tokenStart) && tokenStart.Type is TokenType.Marker)
+        {
+            stack.Pop();
+            stringBuilder.Append(closeTagConvert[TokenType.Marker]);
+        }
+
+        if (stack.TryPeek(out tokenStart) && tokenStart.Type is TokenType.MarkerRange)
+        {
+            stringBuilder.Append(closeTagConvert[TokenType.MarkerRange]);
+        }
+
 
         return stringBuilder.ToString();
     }
 
-    private void AddTag(Stack<Token> stack, StringBuilder stringBuilder, Token token, TokenType tokenType)
+    private void AddPairTag(Stack<Token> stack, StringBuilder stringBuilder, Token token, TokenType tokenType)
     {
         if (stack.TryPeek(out var outToken) && outToken.Type == tokenType)
         {
@@ -82,11 +118,7 @@ public abstract class TokenMdConverter
         }
     }
 
-    private static int GetSpaceBetween(int curTokenStart, int prevTokenEnd)
-    {
-        return (curTokenStart == 0 ? 0 : curTokenStart - 1) - prevTokenEnd;
-    }
-    
+
     protected abstract string ItalicOpen();
     protected abstract string ItalicClose();
 
@@ -95,4 +127,9 @@ public abstract class TokenMdConverter
     protected abstract string HeaderOpen();
     protected abstract string HeaderClose();
 
+    protected abstract string MarkerRangeOpen();
+    protected abstract string MarkerRangeClose();
+
+    protected abstract string MarkerOpen();
+    protected abstract string MarkerClose();
 }

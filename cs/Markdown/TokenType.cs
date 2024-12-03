@@ -9,5 +9,7 @@ public enum TokenType
     Bold,
     Word,
     Digit,
-    BackSlash
+    BackSlash,
+    Marker,
+    MarkerRange
 }

@@ -47,8 +47,11 @@ public class MdConvertToHtml
 
     private static IEnumerable<TestCaseData> NumericCases()
     {
-        yield return new TestCaseData("hello_3231_", "hello_3231_").SetName("NumericInItalic");
-        yield return new TestCaseData("outer__3231__", "outer__3231__").SetName("NumericInBold");
+        yield return new TestCaseData("hello_3231_", "hello_3231_").SetName("hello_3231_ -> hello_3231_");
+        yield return new TestCaseData("outer__3231__", "outer__3231__").SetName("outer__3231__ -> outer__3231__");
+        yield return new TestCaseData("__3231__outer", "__3231__outer").SetName("__3231__outer -> __3231__outer");
+        yield return new TestCaseData("_3231_outer", "_3231_outer").SetName("_3231_outer -> _3231_outer");
+        yield return new TestCaseData("_3231_", "<em>3231</em>").SetName("_3231_ -> <em>3231</em>");
     }
 
 
@@ -87,7 +90,28 @@ public class MdConvertToHtml
             "<h1><strong>This <em>is</em> a</strong> _complex _nested_ _test__ with #escapes__</h1>"
         ).SetName("ComplexNestedTagsWithEscapes");
     }
+    
+    private static IEnumerable<TestCaseData> MarkerCases()
+    {
+        yield return new TestCaseData(
+            "* apple\n* pineApple",
+            "<ul>\n<li>apple</li>\n<li>pineApple</li></ul>"
+        ).SetName("MarkerWithoutEnd");
+        
+        yield return new TestCaseData("* apple\n* pineApple\n_OuterWild_",
+            "<ul>\n<li>apple</li>\n<li>pineApple</li>\n</ul>\n<em>OuterWild</em>")
+            .SetName("MarkerWithEnd");
+        
+        yield return new TestCaseData("* apple\n* _pineApple_\n",
+                "<ul>\n<li>apple</li>\n<li><em>pineApple</em></li>\n</ul>\n")
+            .SetName("MarkerWithItalic");
+        
+        yield return new TestCaseData("* apple\n* __pineApple__\n",
+                "<ul>\n<li>apple</li>\n<li><strong>pineApple</strong></li>\n</ul>\n")
+            .SetName("MarkerWithBold");
+    }
 
+    [TestCaseSource(nameof(MarkerCases))]
     [TestCaseSource(nameof(AdvancedComplexTestCases))]
     [TestCaseSource(nameof(HeaderTestCases))]
     [TestCaseSource(nameof(SimpleTagTestCases))]

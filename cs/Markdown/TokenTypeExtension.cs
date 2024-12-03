@@ -21,7 +21,8 @@ public static class TokenTypeExtension
             { TokenType.NewLine, c => c[0] == '\n' },
             { TokenType.BackSlash, c => c[0] == '\\' },
             { TokenType.Header, c => c[0] == '#' && c[1] == ' ' },
-            { TokenType.Bold, c => c[0] == '_' && c[1] == '_' }
+            { TokenType.Bold, c => c[0] == '_' && c[1] == '_' },
+            { TokenType.Marker, c => c[0] == '*' && c[1] == ' ' }
         };
 
     public static Token CreateTokenMd(this TokenType type, int ptr) =>

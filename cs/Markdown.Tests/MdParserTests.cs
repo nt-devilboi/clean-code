@@ -134,6 +134,43 @@ public class MdParserTests
         ]);
     }
 
+    [Test]
+    public void MdParser_ParseTag_Marker()
+    {
+        var text = "* apple\n* pineApple";
+
+        var tokens = lexer.Tokenize(text);
+
+        tokens.Should().BeEquivalentTo([
+            new Token(" ", TokenType.MarkerRange) { IsTag = true },
+            new Token("* ", TokenType.Marker) { IsTag = true },
+            new Token("apple", TokenType.Word, 2),
+            new Token("\n", TokenType.NewLine, 7) { IsTag = true },
+            new Token("* ", TokenType.Marker, 8) { IsTag = true },
+            new Token("pineApple", TokenType.Word, 10)
+        ]);
+    }
+
+    [Test]
+    public void MdParser_ParseTag_MarkerRangeCLose()
+    {
+        var text = "* apple\n* pineApple\n ";
+
+        var tokens = lexer.Tokenize(text);
+
+        tokens.Should().BeEquivalentTo([
+            new Token(" ", TokenType.MarkerRange) { IsTag = true },
+            new Token("* ", TokenType.Marker) { IsTag = true },
+            new Token("apple", TokenType.Word, 2),
+            new Token("\n", TokenType.NewLine, 7) { IsTag = true },
+            new Token("* ", TokenType.Marker, 8) { IsTag = true },
+            new Token("pineApple", TokenType.Word, 10),
+            new Token("\n", TokenType.NewLine, 19) { IsTag = true },
+            new Token(" ", TokenType.MarkerRange, 19) {IsTag = true},
+            new Token(" ", TokenType.WhiteSpace, 20)
+        ]);
+    }
+
 
     [Test]
     public void MdParser_ParseTags_ItalicInsideBold()
@@ -223,7 +260,7 @@ public class MdParserTests
             new Token("__", TokenType.Bold, 14),
             new Token(" ", TokenType.WhiteSpace, 16),
             new Token("text", TokenType.Word, 17),
-            new Token("_", TokenType.Italic, 21) {IsTag = true}
+            new Token("_", TokenType.Italic, 21) { IsTag = true }
         ]);
     }
 }
