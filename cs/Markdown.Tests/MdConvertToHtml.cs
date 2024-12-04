@@ -36,13 +36,13 @@ public class MdConvertToHtml
     {
         yield return new TestCaseData("____", "____").SetName("DoubleUnderscore");
         yield return new TestCaseData("__", "__").SetName("SingleUnderscore");
-        yield return new TestCaseData("_hi __bold__ t_", "<em>hi __bold__ t</em>").SetName("ItalicWithBoldInside");
+        yield return new TestCaseData("_hi __bold__ t_", "<em>hi __bold__ t</em>").SetName("Bold_ShouldBe_NOT_WorkInsideItalic");
     }
 
     private static IEnumerable<TestCaseData> IntersectionCases()
     {
-        yield return new TestCaseData("_hi __bold t_ k__", "_hi __bold t_ k__").SetName("IntersectCase1");
-        yield return new TestCaseData("__hi _bold t__ k_", "__hi _bold t__ k_").SetName("IntersectCase2");
+        yield return new TestCaseData("_hi __bold t_ k__", "_hi __bold t_ k__").SetName("Italic_ShouldBe_Not_IntersectWithBold");
+        yield return new TestCaseData("__hi _bold t__ k_", "__hi _bold t__ k_").SetName("Bold_ShouldBe_Not_IntersectWithItalic");
     }
 
     private static IEnumerable<TestCaseData> NumericCases()
@@ -61,10 +61,12 @@ public class MdConvertToHtml
         yield return new TestCaseData(@"\__Hello__", "__Hello__").SetName("EscapedDoubleUnderscore");
         yield return new TestCaseData(@"\_Hello_", "_Hello_").SetName("EscapedUnderscore");
         yield return new TestCaseData(@"\\_Hello_", @"\<em>Hello</em>").SetName("EscapedWithItalic");
-        yield return new TestCaseData(@"_Hello_ \_outerwile_", @"<em>Hello</em> _outerwile_").SetName(
-            "EscapedItalicInCenter");
-        yield return new TestCaseData(@"_Hello \_outerwile_", @"<em>Hello _outerwile</em>").SetName(
-            "EscapedItalicBetweenItalic");
+        yield return new TestCaseData(@"_Hello_ \_outerwile_", @"<em>Hello</em> _outerwile_")
+            .SetName("EscapedItalicInCenter");
+        yield return new TestCaseData(@"_Hello \_outerwile_", @"<em>Hello _outerwile</em>")
+            .SetName("EscapedItalicBetweenItalic");
+        yield return new TestCaseData(@"\outerwile", @"\outerwile")
+            .SetName("EscapedItalicBetweenItalic");
     }
 
     private static IEnumerable<TestCaseData> ComplexNestedTags()
@@ -87,9 +89,10 @@ public class MdConvertToHtml
     {
         yield return new TestCaseData(
             @"# __This _is_ a__ _complex \_nested\_ _test__ with \#escapes__",
-            "<h1><strong>This <em>is</em> a</strong> _complex _nested_ _test__ with #escapes__</h1>"
+            @"<h1><strong>This <em>is</em> a</strong> _complex _nested_ _test__ with \#escapes__</h1>"
         ).SetName("ComplexNestedTagsWithEscapes");
     }
+    
     
     private static IEnumerable<TestCaseData> MarkerCases()
     {
@@ -109,6 +112,30 @@ public class MdConvertToHtml
         yield return new TestCaseData("* apple\n* __pineApple__\n",
                 "<ul>\n<li>apple</li>\n<li><strong>pineApple</strong></li>\n</ul>\n")
             .SetName("MarkerWithBold");
+        
+        yield return new TestCaseData("* apple\n* __pine_App_le__\n",
+                "<ul>\n<li>apple</li>\n<li><strong>pine<em>App</em>le</strong></li>\n</ul>\n")
+            .SetName("MarkerWithBoldAndItalic");
+        
+        yield return new TestCaseData("* apple\n* \\pine\\__Apple__\n",
+                "<ul>\n<li>apple</li>\n<li>\\pine__Apple__</li>\n</ul>\n")
+            .SetName("MarkerWithBackSlash");
+        
+        yield return new TestCaseData("# ShoppingList\n* apple\n* pineApple\n",
+                "<h1>ShoppingList</h1>\n<ul>\n<li>apple</li>\n<li>pineApple</li>\n</ul>\n")
+            .SetName("MarkerWitHeader");
+        
+        yield return new TestCaseData(" * apple\n* pineApple\n",
+                " <ul>\n<li>apple</li>\n<li>pineApple</li>\n</ul>\n")
+            .SetName("Marker_ShouldBe_StartAfterWhiteSpace");
+        
+        yield return new TestCaseData("k * apple\n* pineApple\n",
+                "k * apple\n<ul>\n<li>pineApple</li>\n</ul>\n")
+            .SetName("Marker_ShouldBe_Not_AfterSymbols");
+        
+        yield return new TestCaseData("\\* apple\n* pineApple\n",
+                "* apple\n<ul>\n<li>pineApple</li>\n</ul>\n")
+            .SetName("Marker_ShouldBe_Not_AfterSymbols");
     }
 
     [TestCaseSource(nameof(MarkerCases))]
@@ -132,7 +159,7 @@ public class MdConvertToHtml
     public void CheckUtf()
     {
         var unicodeSymbols = Enumerable.Range(0, 10000)
-            .Select(char.ConvertFromUtf32).Where(x => x != "\\") // убрал его, так как это экраннирование
+            .Select(char.ConvertFromUtf32) // убрал его, так как это экраннирование
             .Aggregate((a, b) => a + b); // Собираем в строку
 
 
