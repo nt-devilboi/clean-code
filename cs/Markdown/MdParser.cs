@@ -75,30 +75,13 @@ public class MdParser : ILexer
                 ptr++;
             }
 
-            // todo: можно заюзать еще один dict, который по чару будет определять какой вызвать метод по созданию токена. тем самым все SimpleToken можно точно свести к 3 строчкам.
-            else if (TokenType.WhiteSpace.IsMatchMd(text[ptr]))
+            else if (TokenTypeExtension.IsSimpleChar(text[ptr]))
             {
-                var token = CreateSimpleToken(TokenType.WhiteSpace, ptr, text);
-                result.Add(token);
-                ptr += token.Lenght;
-                
-            }
-
-            else if (TokenType.Digit.IsMatchMd(text[ptr]))
-            {
-                var tokenText = CreateSimpleToken(TokenType.Digit, ptr, text);
+                var tokenText = CreateSimpleToken(TokenTypeExtension.GetTypeByChar(text[ptr]), ptr, text);
                 result.Add(tokenText);
                 ptr += tokenText.Lenght;
             }
             
-            else if (TokenType.Word.IsMatchMd(text[ptr]))
-            {
-                var word = CreateSimpleToken(TokenType.Word, ptr, text);
-                result.Add(word);
-                ptr += word.Lenght;
-            }
-           
-
             else ptr++;
         }
 

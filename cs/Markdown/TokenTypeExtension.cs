@@ -8,10 +8,14 @@ public static class TokenTypeExtension
         { TokenType.Italic, "_" }
     };
 
-    public static readonly Dictionary<Func<char, bool>, TokenType> TokenTypes =
-        new() // experiments 
+
+    private static readonly List<Func<char, bool>> DetectType = [char.IsDigit, char.IsWhiteSpace];
+
+    private static readonly Dictionary<Func<char, bool>, TokenType> TokenTypes =
+        new() // experiments (вывести в другой класс) 
         {
-            { char.IsDigit, TokenType.Digit }
+            { char.IsDigit, TokenType.Digit },
+            { char.IsWhiteSpace, TokenType.WhiteSpace },
         };
 
     private static readonly Dictionary<TokenType, Func<string, bool>> PossibleCharTokenType =
@@ -42,4 +46,14 @@ public static class TokenTypeExtension
         PossibleCharTokenType[TokenType.Digit](c.ToString()) ||
         PossibleCharTokenType[TokenType.Word](c.ToString()) ||
         PossibleCharTokenType[TokenType.WhiteSpace](c.ToString());
+
+    public static TokenType GetTypeByChar(char c)
+    {
+        foreach (var isTypeMatch in DetectType.Where(isTypeMatch => isTypeMatch(c)))
+        {
+            return TokenTypes[isTypeMatch];
+        }
+
+        return TokenType.Word;
+    }
 }
