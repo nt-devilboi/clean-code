@@ -19,36 +19,7 @@ public class MdParser : ILexer
                 result.Add(CreateTokenHeader(ptr, stack));
                 ptr += 2;
             }
-
-            else if (TokenType.Digit.IsMatchMd(text[ptr]))
-            {
-                var tokenText = CreateSimpleToken(TokenType.Digit, ptr, text);
-                result.Add(tokenText);
-                ptr += tokenText.Lenght;
-            }
-
-            else if (TokenType.BackSlash.IsMatchMd(text[ptr]))
-            {
-                if (OnLeftHaveTag(TokenType.BackSlash, stack, ptr))
-                {
-                    stack.Pop();
-                    result.Add(new Token(@"\", TokenType.BackSlash, ptr));
-                }
-                else if (OnRightHave(TokenType.Italic, ptr + 1, text) ||
-                         OnRightHave(TokenType.BackSlash, ptr + 1, text) ||
-                         ptr + 1 < text.Length && text[ptr + 1] == '*')
-                {
-                    stack.Push(new Token(@"\", TokenType.BackSlash, ptr) { IsTag = true });
-                }
-                else
-                {
-                    result.Add(new Token(@"\", TokenType.BackSlash, ptr));
-                }
-
-
-                ptr++;
-            }
-
+            
             else if (TokenType.NewLine.IsMatchMd(text[ptr]))
             {
                 var token = CreateTokenNewLine(stack, ptr);
@@ -56,76 +27,77 @@ public class MdParser : ILexer
                 if (stack.TryPeek(out var startToken) && startToken.Type is TokenType.MarkerRange &&
                     (ptr + 1 >= text.Length || text[ptr + 1] != '*'))
                 {
+                    stack.Pop();
                     result.Add(new Token(" ", TokenType.MarkerRange, ptr) { IsTag = true });
                 }
 
                 ptr++;
             }
 
-            else if (TokenType.WhiteSpace.IsMatchMd(text[ptr]))
+
+            else if (TokenType.BackSlash.IsMatchMd(text[ptr]))
             {
-                var token = CreateSimpleToken(TokenType.WhiteSpace, ptr, text);
-                result.Add(token);
-                ptr += token.Lenght;
-            }
-
-            else if (ptr + 1 < text.Length && TokenType.Marker.IsMatchMd(text.Substring(ptr, 2)))
-            {
-                if (stack.TryPeek(out var token) && token.Type is TokenType.MarkerRange)
+                if (!AddedAsBackSlash(text, stack, ptr, result))
                 {
-                    var marker = new Token("* ", TokenType.Marker, ptr) { IsTag = true };
-                    stack.Push(marker);
-                    result.Add(marker);
-                }
-                else if (OnLeftHaveTag(TokenType.BackSlash, stack, ptr))
-                {
-                    stack.Pop();
-                    result.Add(new Token("* ", TokenType.Marker, ptr));
-                }
-                else if (OnLeftEmptyOrNewLine(result))
-                {
-                    var marker = new Token("* ", TokenType.Marker, ptr) { IsTag = true };
-                    var markerRange = new Token(" ", TokenType.MarkerRange) { IsTag = true };
-                    result.Add(markerRange);
-                    result.Add(marker);
-                    stack.Push(markerRange);
-                    stack.Push(marker);
-                }
-                else
-                {
-                    var marker = new Token("* ", TokenType.Marker, ptr);
-                    result.Add(marker);
-                }
-
-                ptr += 2;
-            }
-
-            else if (ptr + 1 < text.Length && TokenType.Bold.IsMatchMd(text.Substring(ptr, 2)))
-            {
-                if (!AddedAsSingleToken(stack, ptr, text, TokenType.Bold, result))
-                {
-                    result.Add(CreatePairToken(stack, ptr, text, pairTags, TokenType.Bold));
-                }
-
-                ptr += 2;
-            }
-
-            else if (TokenType.Italic.IsMatchMd(text[ptr]))
-            {
-                if (!AddedAsSingleToken(stack, ptr, text, TokenType.Italic, result))
-                {
-                    result.Add(CreatePairToken(stack, ptr, text, pairTags, TokenType.Italic));
+                    stack.Push(new Token(@"\", TokenType.BackSlash, ptr) { IsTag = true });
                 }
 
                 ptr++;
             }
 
+            else if (IsMarker(text, ptr))
+            {
+                if (!AddedAsSingleTokenMarker(result, ptr, stack))
+                {
+                    CreatePairTokenMarker(stack, ptr, result);
+                }
+
+                ptr += 2;
+            }
+
+            else if (IsBold(text, ptr))
+            {
+                if (!AddedAsSingleTokenUndercore(stack, ptr, text, TokenType.Bold, result))
+                {
+                    result.Add(CreatePairTokenUndercore(stack, ptr, text, pairTags, TokenType.Bold));
+                }
+
+                ptr += 2;
+            }
+
+            else if (IsItalic(text, ptr))
+            {
+                if (!AddedAsSingleTokenUndercore(stack, ptr, text, TokenType.Italic, result))
+                {
+                    result.Add(CreatePairTokenUndercore(stack, ptr, text, pairTags, TokenType.Italic));
+                }
+
+                ptr++;
+            }
+
+            // todo: можно заюзать еще один dict, который по чару будет определять какой вызвать метод по созданию токена. тем самым все SimpleToken можно точно свести к 3 строчкам.
+            else if (TokenType.WhiteSpace.IsMatchMd(text[ptr]))
+            {
+                var token = CreateSimpleToken(TokenType.WhiteSpace, ptr, text);
+                result.Add(token);
+                ptr += token.Lenght;
+                
+            }
+
+            else if (TokenType.Digit.IsMatchMd(text[ptr]))
+            {
+                var tokenText = CreateSimpleToken(TokenType.Digit, ptr, text);
+                result.Add(tokenText);
+                ptr += tokenText.Lenght;
+            }
+            
             else if (TokenType.Word.IsMatchMd(text[ptr]))
             {
                 var word = CreateSimpleToken(TokenType.Word, ptr, text);
                 result.Add(word);
                 ptr += word.Lenght;
             }
+           
 
             else ptr++;
         }
@@ -134,7 +106,81 @@ public class MdParser : ILexer
         return ImmutableList.CreateRange(result);
     }
 
-    private bool OnLeftEmptyOrNewLine(List<Token> result)
+    private static bool IsMarker(string text, int ptr)
+    {
+        return ptr + 1 < text.Length && TokenType.Marker.IsMatchMd(text.Substring(ptr, 2));
+    }
+
+    private static bool IsItalic(string text, int ptr) => TokenType.Italic.IsMatchMd(text[ptr]);
+
+    private static bool IsBold(string text, int ptr) =>
+        ptr + 1 < text.Length && TokenType.Bold.IsMatchMd(text.Substring(ptr, 2));
+
+
+    private static bool AddedAsBackSlash(string text, Stack<Token> stack, int ptr, List<Token> result)
+    {
+        if (OnLeftHaveTag(TokenType.BackSlash, stack, ptr))
+        {
+            stack.Pop();
+            result.Add(new Token(@"\", TokenType.BackSlash, ptr));
+            return true;
+        }
+
+        if (!BackSlashAsScreening(text, ptr))
+        {
+            result.Add(new Token(@"\", TokenType.BackSlash, ptr));
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool BackSlashAsScreening(string text, int ptr)
+    {
+        return OnRightHave(TokenType.Italic, ptr + 1, text) ||
+               OnRightHave(TokenType.BackSlash, ptr + 1, text) ||
+               ptr + 1 < text.Length && text[ptr + 1] == '*';
+    }
+
+    private static bool AddedAsSingleTokenMarker(List<Token> result, int ptr, Stack<Token> stack)
+    {
+        if (!OnLeftEmptyOrNewLine(result))
+        {
+            var marker = new Token("* ", TokenType.Marker, ptr);
+            result.Add(marker);
+            return true;
+        }
+
+        if (OnLeftHaveTag(TokenType.BackSlash, stack, ptr))
+        {
+            stack.Pop();
+            result.Add(new Token("* ", TokenType.Marker, ptr));
+            return true;
+        }
+
+        return false;
+    }
+
+    private static void CreatePairTokenMarker(Stack<Token> stack, int ptr, List<Token> result)
+    {
+        if (stack.TryPeek(out var token) && token.Type is TokenType.MarkerRange)
+        {
+            var marker = new Token("* ", TokenType.Marker, ptr) { IsTag = true };
+            stack.Push(marker);
+            result.Add(marker);
+        }
+        else
+        {
+            var marker = new Token("* ", TokenType.Marker, ptr) { IsTag = true };
+            var markerRange = new Token(" ", TokenType.MarkerRange) { IsTag = true };
+            result.Add(markerRange);
+            result.Add(marker);
+            stack.Push(markerRange);
+            stack.Push(marker);
+        }
+    }
+
+    private static bool OnLeftEmptyOrNewLine(List<Token> result)
     {
         for (int i = result.Count - 1; i >= 0; i--)
         {
@@ -142,6 +188,7 @@ public class MdParser : ILexer
 
             return result[i].Type is TokenType.NewLine;
         }
+
 
         return true;
     }
@@ -154,7 +201,7 @@ public class MdParser : ILexer
     }
 
     private static bool
-        AddedAsSingleToken(Stack<Token> stack, int ptr, string text, TokenType type,
+        AddedAsSingleTokenUndercore(Stack<Token> stack, int ptr, string text, TokenType type,
             List<Token> result)
     {
         var token = type.CreateTokenMd(ptr);
@@ -234,7 +281,8 @@ public class MdParser : ILexer
             { IsTag = ParagraphStartWithTag(stack) };
     }
 
-    private static Token CreatePairToken(Stack<Token> stack, int ptr, string text, List<PairToken> possibleTags,
+    private static Token CreatePairTokenUndercore(Stack<Token> stack, int ptr, string text,
+        List<PairToken> possibleTags,
         TokenType type)
     {
         if (stack.TryPeek(out var token) && token.Type == type)
