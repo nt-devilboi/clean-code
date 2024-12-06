@@ -158,15 +158,16 @@ public class MdConvertToHtml
     [Test]
     public void CheckUtf()
     {
-        var unicodeSymbols = Enumerable.Range(0, 10000)
-            .Select(char.ConvertFromUtf32) // убрал его, так как это экраннирование
-            .Aggregate((a, b) => a + b); // Собираем в строку
-
-
-        foreach (var chunk in Chunk(unicodeSymbols, 1000))
+        foreach (var chunk in PrepareUtfForRender(10000))
         {
             Parser.Render(chunk).Should().Be(chunk);
         }
+    }
+
+    private static IEnumerable<string> PrepareUtfForRender(int countUtfSymbols)
+    {
+        return string.Join("", Enumerable.Range(0, countUtfSymbols).Select(char.ConvertFromUtf32))
+            .Chunk(1000).Select(x => new string(x));
     }
 
     [Test]
@@ -195,7 +196,7 @@ public class MdConvertToHtml
             var input = GenerateInput(size);
 
             var stopwatch = Stopwatch.StartNew();
-            Task.Run(() => Algorithm(input)); // чтоб в отедльном потоке была и скорость не зависела от других задач
+            Parser.Render(input);
             stopwatch.Stop();
 
             timings.Add(stopwatch.Elapsed.TotalMilliseconds);
@@ -210,16 +211,4 @@ public class MdConvertToHtml
             size));
     }
 
-    private void Algorithm(string input)
-    {
-        Parser.Render(input);
-    }
-
-    private static IEnumerable<string> Chunk(string input, int chunkSize)
-    {
-        for (int i = 0; i < input.Length; i += chunkSize)
-        {
-            yield return input.Substring(i, Math.Min(chunkSize, input.Length - i));
-        }
-    }
 }
