@@ -1,6 +1,5 @@
-using Microsoft.VisualBasic;
 
-namespace Markdown.NodeElement;
+namespace Markdown;
 
 public class PairToken(Token start, Token end)
 {

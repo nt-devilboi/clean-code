@@ -1,6 +1,5 @@
 using System.Collections.Immutable;
 using Markdown.Interfaces;
-using Markdown.NodeElement;
 
 namespace Markdown;
 
@@ -19,7 +18,7 @@ public class MdParser : ILexer
                 result.Add(CreateTokenHeader(ptr, stack));
                 ptr += 2;
             }
-            
+
             else if (TokenType.NewLine.IsMatchMd(text[ptr]))
             {
                 var token = CreateTokenNewLine(stack, ptr);
@@ -37,7 +36,7 @@ public class MdParser : ILexer
 
             else if (TokenType.BackSlash.IsMatchMd(text[ptr]))
             {
-                if (!AddedAsBackSlash(text, stack, ptr, result))
+                if (!TryAsBackSlash(text, stack, ptr, result))
                 {
                     stack.Push(new Token(@"\", TokenType.BackSlash, ptr) { IsTag = true });
                 }
@@ -47,7 +46,7 @@ public class MdParser : ILexer
 
             else if (IsMarker(text, ptr))
             {
-                if (!AddedAsSingleTokenMarker(result, ptr, stack))
+                if (!TryAddAsSingleTokenMarker(result, ptr, stack))
                 {
                     CreatePairTokenMarker(stack, ptr, result);
                 }
@@ -57,7 +56,7 @@ public class MdParser : ILexer
 
             else if (IsBold(text, ptr))
             {
-                if (!AddedAsSingleTokenUndercore(stack, ptr, text, TokenType.Bold, result))
+                if (!TryAddAsSingleTokenUndercore(stack, ptr, text, TokenType.Bold, result))
                 {
                     result.Add(CreatePairTokenUndercore(stack, ptr, text, pairTags, TokenType.Bold));
                 }
@@ -67,7 +66,7 @@ public class MdParser : ILexer
 
             else if (IsItalic(text, ptr))
             {
-                if (!AddedAsSingleTokenUndercore(stack, ptr, text, TokenType.Italic, result))
+                if (!TryAddAsSingleTokenUndercore(stack, ptr, text, TokenType.Italic, result))
                 {
                     result.Add(CreatePairTokenUndercore(stack, ptr, text, pairTags, TokenType.Italic));
                 }
@@ -75,17 +74,15 @@ public class MdParser : ILexer
                 ptr++;
             }
 
-            else if (TokenTypeExtension.IsSimpleChar(text[ptr]))
+            else 
             {
-                var tokenText = CreateSimpleToken(TokenTypeExtension.GetTypeByChar(text[ptr]), ptr, text);
+                var tokenText = CreateSimpleToken(text[ptr].AsTokenType(), ptr, text);
                 result.Add(tokenText);
                 ptr += tokenText.Lenght;
             }
-            
-            else ptr++;
         }
 
-        SetCorrectTags(pairTags);
+        CheckPairToken(pairTags);
         return ImmutableList.CreateRange(result);
     }
 
@@ -100,7 +97,7 @@ public class MdParser : ILexer
         ptr + 1 < text.Length && TokenType.Bold.IsMatchMd(text.Substring(ptr, 2));
 
 
-    private static bool AddedAsBackSlash(string text, Stack<Token> stack, int ptr, List<Token> result)
+    private static bool TryAsBackSlash(string text, Stack<Token> stack, int ptr, List<Token> result)
     {
         if (OnLeftHaveTag(TokenType.BackSlash, stack, ptr))
         {
@@ -125,7 +122,7 @@ public class MdParser : ILexer
                ptr + 1 < text.Length && text[ptr + 1] == '*';
     }
 
-    private static bool AddedAsSingleTokenMarker(List<Token> result, int ptr, Stack<Token> stack)
+    private static bool TryAddAsSingleTokenMarker(List<Token> result, int ptr, Stack<Token> stack)
     {
         if (!OnLeftEmptyOrNewLine(result))
         {
@@ -171,8 +168,7 @@ public class MdParser : ILexer
 
             return result[i].Type is TokenType.NewLine;
         }
-
-
+        
         return true;
     }
 
@@ -183,8 +179,8 @@ public class MdParser : ILexer
         return headerStart;
     }
 
-    private static bool
-        AddedAsSingleTokenUndercore(Stack<Token> stack, int ptr, string text, TokenType type,
+    private static bool TryAddAsSingleTokenUndercore(Stack<Token> stack, int ptr,
+            string text, TokenType type,
             List<Token> result)
     {
         var token = type.CreateTokenMd(ptr);
@@ -215,7 +211,7 @@ public class MdParser : ILexer
 
     private static bool IsStartLine(string text, int ptr) => ptr == 0 || text[ptr - 1] == '\n';
 
-    private static void SetCorrectTags(List<PairToken> possibleCorrectPair)
+    private static void CheckPairToken(List<PairToken> possibleCorrectPair)
     {
         if (possibleCorrectPair.Count == 1)
         {

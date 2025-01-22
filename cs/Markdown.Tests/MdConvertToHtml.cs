@@ -15,6 +15,10 @@ public class MdConvertToHtml
         yield return new TestCaseData("# _hello_", "<h1><em>hello</em></h1>").SetName("ItalicInHeader");
     }
 
+    private static IEnumerable<TestCaseData> OnlyText()
+    {
+        yield return new TestCaseData("hello", "hello").SetName("OnlyText");
+    }
     private static IEnumerable<TestCaseData> SimpleTagTestCases()
     {
         yield return new TestCaseData("_hello_", "<em>hello</em>").SetName("ItalicText");
@@ -139,8 +143,9 @@ public class MdConvertToHtml
     }
 
     [TestCaseSource(nameof(MarkerCases))]
-    [TestCaseSource(nameof(AdvancedComplexTestCases))]
     [TestCaseSource(nameof(HeaderTestCases))]
+    [TestCaseSource(nameof(AdvancedComplexTestCases))]
+    [TestCaseSource(nameof(OnlyText))]
     [TestCaseSource(nameof(SimpleTagTestCases))]
     [TestCaseSource(nameof(NestedTagTestCases))]
     [TestCaseSource(nameof(SpecialCases))]
