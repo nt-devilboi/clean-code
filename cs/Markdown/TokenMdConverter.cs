@@ -36,7 +36,7 @@ public abstract class TokenMdConverter
 
         foreach (var token in tokens)
         {
-            if (token is { IsTag: false }) stringBuilder.Append(token.Value);
+            if (token is { IsTag: false }) stringBuilder.Append(token.Value); // сложно написал как-то.
 
             else if (token is { Type: TokenType.Italic })
             {

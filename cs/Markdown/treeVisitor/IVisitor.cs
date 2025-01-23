@@ -6,12 +6,15 @@ public interface IVisitor
 {
     public string Convert(HeaderNode headerNode);
 
-    public string Convert(LineNode lineNodeNode);
-    public string Convert(TextNode textNode);
-    public string Convert(NewLineNode newLineNode);
+    string Convert(TextNode textNode);
+    string Convert(ItalicNode ItalicNode);
+    string Convert(NewLineNode newLineNode);
+    string Convert(LineNode lineNodeNode);
+    string Convert(DigitNode lineNodeNode);
+    string Convert(BoldNode boldNode);
 }
 
-public class Visitor : IVisitor // по сути, visitor, как опасный грибок мицелий, он попадает в объект, а потом его съедает и уже он управляет им, а не оъект им.
+public class HtmlVisitor : IVisitor // по сути, visitor, как опасный грибок мицелий, он попадает в объект, а потом его съедает и уже он управляет им, а не оъект им.
 {
     public string Convert(HeaderNode headerNode)
     {
@@ -26,13 +29,32 @@ public class Visitor : IVisitor // по сути, visitor, как опасный
 
     public string Convert(LineNode lineNodeNode)
     {
-        var innerText = new StringBuilder(); 
+        var innerText = InnerText(lineNodeNode);
+        var text = lineNodeNode.NextNode;
+        return $"{innerText}{text?.Convert(this) ?? ""}";
+    }
+
+    private string InnerText(INode lineNodeNode)
+    {
+        var innerText = new StringBuilder();
         foreach (var node in lineNodeNode.InnerNode)
         {
             innerText.Append(node.Convert(this));
         }
-        var text = lineNodeNode.NextNode;
-        return $"{innerText}{text?.Convert(this) ?? ""}";
+
+        return innerText.ToString();
+    }
+
+    public string Convert(DigitNode lineNodeNode)
+    {
+        return lineNodeNode.Digit.ToString();
+    }
+
+    public string Convert(BoldNode boldNode)
+    {
+        var innerText = InnerText(boldNode);
+
+        return $"<strong>{innerText}</strong>{boldNode.NextNode?.Convert(this) ?? ""}";
     }
 
     public string Convert(TextNode textNode)
@@ -42,12 +64,15 @@ public class Visitor : IVisitor // по сути, visitor, как опасный
 
     public string Convert(NewLineNode newLineNode)
     {
-        var text = new StringBuilder();
-        foreach (var token in newLineNode.InnerNode)
-        {
-            text.Append(token.Convert(this));
-        }
+        var innerText = InnerText(newLineNode);
         
-        return $"\n{text}{newLineNode.NextNode?.Convert(this) ?? ""}";
+        return $"\n{innerText}{newLineNode.NextNode?.Convert(this) ?? ""}";
+    }
+
+    public string Convert(ItalicNode italicNode)
+    {
+        var innerText = InnerText(italicNode);
+
+        return $"<em>{innerText}</em>{italicNode.NextNode?.Convert(this) ?? ""}";
     }
 }
