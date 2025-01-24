@@ -1,24 +1,84 @@
 using System.Collections.Immutable;
 using Markdown.treeVisitor;
 
-namespace Markdown;
+namespace Markdown.Converter;
 
 internal class ConvertTree : IConvertTree
 {
     public INode Convert(IImmutableList<Token> tokens)
     {
         var start = -1;
-        var tree = CreateLineNode(tokens, ref start);
+        var tree = CreateNode(tokens, new LineNode(), false, ref start);
 
 
         return tree;
     }
 
-    private LineNode CreateLineNode<TNode>(IImmutableList<Token> tokens, TNode node, ref int j) where TNode : INode
+    private TNode CreateNode<TNode>(IImmutableList<Token> tokens, TNode node, bool canIncludeHardTag, ref int j)
+        where TNode : INode
     {
-        throw new NotImplementedException();
+        for (j++; j < tokens.Count; j++)
+        {
+            if (!tokens[j].IsTag)
+            {
+                node.InnerNode.Add(new TextNode(tokens[j].Value));
+            }
+
+            else if (tokens[j].Type is TokenType.Header)
+            {
+                var header = CreateNode(tokens, new HeaderNode(), true, ref j);
+                node.NextNode = header;
+            }
+
+            else if (tokens[j].Type is TokenType.Italic)
+            {
+                if (node is ItalicNode)
+                {// canInclude... работает не самым правильным обрзаом
+                    if (canIncludeHardTag) node.NextNode = CreateNode(tokens, new LineNode(), false, ref j);
+
+                    break;
+                }
+
+                node.InnerNode.Add(CreateNode(tokens, new ItalicNode(), false, ref j));
+            }
+
+            else if (tokens[j].Type is TokenType.Bold)
+            {
+                if (node is BoldNode)
+                {
+                    node.NextNode = CreateNode(tokens, new LineNode(), false, ref j);
+                    
+                    break;
+                }
+
+                if (node is HeaderNode)
+                {// мне нравится как здесь происходит жанглирование экзеплярами node, внутри который хранится информация.
+                    node.InnerNode.Add(CreateNode(tokens, new BoldNode(), true, ref j)); 
+                }
+
+                else
+                {
+                    var bold = CreateNode(tokens, new BoldNode(), true, ref j);
+
+                    node.NextNode = bold;
+                }
+            }
+
+            else if (tokens[j].Type is TokenType.NewLine)
+            {
+                if (node is HeaderNode)
+                {
+                    node.NextNode = CreateNode(tokens, new NewLineNode(), false, ref j);
+                    break;
+                }
+            }
+        }
+
+        return node;
     }
+
     
+    // todo: всё ниже убрать, когда выше будет работать
     private LineNode CreateLineNode(IImmutableList<Token> tokens, ref int j)
     {
         var root = new LineNode();
@@ -88,7 +148,7 @@ internal class ConvertTree : IConvertTree
             {
                 header.InnerNode.Add(new TextNode(tokens[j].Value));
             }
-            
+
             else if (tokens[j].Type is TokenType.NewLine)
             {
                 header.NextNode = CreateNewLIne(tokens, ref j);

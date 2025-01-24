@@ -9,6 +9,8 @@ public class TextNode : INode
         Text = text;
     }
 
+    public bool CanHaveInnerHardNode() => false;
+
     public List<INode> InnerNode { get; set; } = [];
     public INode NextNode { get; set; }
 

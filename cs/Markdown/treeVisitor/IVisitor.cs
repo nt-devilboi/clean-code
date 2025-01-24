@@ -18,12 +18,7 @@ public class HtmlVisitor : IVisitor // по сути, visitor, как опасн
 {
     public string Convert(HeaderNode headerNode)
     {
-        var innerText = new StringBuilder();
-        foreach (var node in headerNode.InnerNode)
-        {
-            innerText.Append(node.Convert(this));
-        }
-        
+        var innerText = InnerText(headerNode);
         return $"<h1>{innerText}</h1>{headerNode.NextNode?.Convert(this) ?? ""}";
     }
 
@@ -32,17 +27,6 @@ public class HtmlVisitor : IVisitor // по сути, visitor, как опасн
         var innerText = InnerText(lineNodeNode);
         var text = lineNodeNode.NextNode;
         return $"{innerText}{text?.Convert(this) ?? ""}";
-    }
-
-    private string InnerText(INode lineNodeNode)
-    {
-        var innerText = new StringBuilder();
-        foreach (var node in lineNodeNode.InnerNode)
-        {
-            innerText.Append(node.Convert(this));
-        }
-
-        return innerText.ToString();
     }
 
     public string Convert(DigitNode lineNodeNode)
@@ -74,5 +58,16 @@ public class HtmlVisitor : IVisitor // по сути, visitor, как опасн
         var innerText = InnerText(italicNode);
 
         return $"<em>{innerText}</em>{italicNode.NextNode?.Convert(this) ?? ""}";
+    }
+
+    private string InnerText(INode lineNodeNode)
+    {
+        var innerText = new StringBuilder();
+        foreach (var node in lineNodeNode.InnerNode)
+        {
+            innerText.Append(node.Convert(this));
+        }
+
+        return innerText.ToString();
     }
 }
