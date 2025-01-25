@@ -12,6 +12,8 @@ public interface IVisitor
     string Convert(LineNode lineNodeNode);
     string Convert(DigitNode lineNodeNode);
     string Convert(BoldNode boldNode);
+    string Convert(MarkerRangeNode lineNodeNode);
+    string Convert(MarkerNode markerNode);
 }
 
 public class HtmlVisitor : IVisitor // по сути, visitor, как опасный грибок мицелий, он попадает в объект, а потом его съедает и уже он управляет им, а не оъект им.
@@ -41,6 +43,20 @@ public class HtmlVisitor : IVisitor // по сути, visitor, как опасн
         return $"<strong>{innerText}</strong>{boldNode.NextNode?.Convert(this) ?? ""}";
     }
 
+    public string Convert(MarkerRangeNode lineNodeNode)
+    {
+        var innerText = InnerText(lineNodeNode);
+
+        return $"<ul>\n{innerText}</ul>{lineNodeNode.NextNode?.Convert(this) ?? ""}";
+    }
+
+    public string Convert(MarkerNode markerNode)
+    {
+        var innerText = InnerText(markerNode);
+        
+        return $"<li>{innerText}</li>{markerNode.NextNode?.Convert(this) ?? ""}";
+    }
+
     public string Convert(TextNode textNode)
     {
         return textNode.Text;
@@ -59,7 +75,8 @@ public class HtmlVisitor : IVisitor // по сути, visitor, как опасн
 
         return $"<em>{innerText}</em>{italicNode.NextNode?.Convert(this) ?? ""}";
     }
-
+    
+    
     private string InnerText(INode lineNodeNode)
     {
         var innerText = new StringBuilder();
