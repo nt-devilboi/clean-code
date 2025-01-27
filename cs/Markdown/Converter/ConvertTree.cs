@@ -14,7 +14,6 @@ internal class ConvertTree : IConvertTree
         return tree;
     }
 
-    // outer true когда явно данный тэк находится внутри другого.
     private TNode CreateNode<TNode>(IImmutableList<Token> tokens, TNode node, bool haveOuterToken, ref int j)
         where TNode : INode
     {
@@ -85,7 +84,7 @@ internal class ConvertTree : IConvertTree
 
                 else
                 {
-                    var bold = CreateNode(tokens, new BoldNode(), true, ref j);
+                    var bold = CreateNode(tokens, new BoldNode(), false, ref j);
 
                     node.NextNode = bold;
                 }

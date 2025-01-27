@@ -33,10 +33,9 @@ public class MdParser : ILexer
                 ptr++;
             }
 
-
             else if (TokenType.BackSlash.IsMatchMd(text[ptr]))
             {
-                if (!TryAsBackSlash(text, stack, ptr, result))
+                if (!TryAddAsBackSlash(text, stack, ptr, result))
                 {
                     stack.Push(new Token(@"\", TokenType.BackSlash, ptr) { IsTag = true });
                 }
@@ -74,9 +73,9 @@ public class MdParser : ILexer
                 ptr++;
             }
 
-            else 
+            else
             {
-                var tokenText = CreateSimpleToken(text[ptr].AsTokenType(), ptr, text);
+                var tokenText = CreateSimpleToken(text[ptr].AsSimpleTokenType(), ptr, text);
                 result.Add(tokenText);
                 ptr += tokenText.Lenght;
             }
@@ -97,7 +96,7 @@ public class MdParser : ILexer
         ptr + 1 < text.Length && TokenType.Bold.IsMatchMd(text.Substring(ptr, 2));
 
 
-    private static bool TryAsBackSlash(string text, Stack<Token> stack, int ptr, List<Token> result)
+    private static bool TryAddAsBackSlash(string text, Stack<Token> stack, int ptr, List<Token> result)
     {
         if (OnLeftHaveTag(TokenType.BackSlash, stack, ptr))
         {
@@ -168,7 +167,7 @@ public class MdParser : ILexer
 
             return result[i].Type is TokenType.NewLine;
         }
-        
+
         return true;
     }
 
@@ -180,8 +179,8 @@ public class MdParser : ILexer
     }
 
     private static bool TryAddAsSingleTokenUndercore(Stack<Token> stack, int ptr,
-            string text, TokenType type,
-            List<Token> result)
+        string text, TokenType type,
+        List<Token> result)
     {
         var token = type.CreateTokenMd(ptr);
         if (OnLeftHaveTag(TokenType.BackSlash, stack, ptr))
@@ -213,21 +212,13 @@ public class MdParser : ILexer
 
     private static void CheckPairToken(List<PairToken> possibleCorrectPair)
     {
-        if (possibleCorrectPair.Count == 1)
-        {
-            possibleCorrectPair[0].Start.IsTag = true;
-            possibleCorrectPair[0].End.IsTag = true;
-            return;
-        }
-
         for (var i = 0; i < possibleCorrectPair.Count; i++)
         {
             possibleCorrectPair[i].Start.IsTag = true;
             possibleCorrectPair[i].End.IsTag = true;
             for (var j = Math.Max(i - 1, 0); j < possibleCorrectPair.Count; j++)
             {
-                if (i == j) continue;
-                if (TagsCorrect(possibleCorrectPair[i], possibleCorrectPair[j])) continue;
+                if (i == j || TagsCorrect(possibleCorrectPair[i], possibleCorrectPair[j])) continue;
                 possibleCorrectPair[i].Start.IsTag = false;
                 possibleCorrectPair[i].End.IsTag = false;
 

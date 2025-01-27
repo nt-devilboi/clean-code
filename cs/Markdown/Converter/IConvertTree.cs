@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using Markdown.treeVisitor;
 
-namespace Markdown;
+namespace Markdown.Converter;
 
 internal interface IConvertTree
 {

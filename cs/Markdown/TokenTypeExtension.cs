@@ -43,7 +43,7 @@ public static class TokenTypeExtension
         PossibleCharTokenType.TryGetValue(type, out var check) && check(c);
 
 
-    public static TokenType AsTokenType(this char c)
+    public static TokenType AsSimpleTokenType(this char c)
     {
         foreach (var isTypeMatch in DetectType.Where(isTypeMatch => isTypeMatch(c)))
         {
@@ -52,7 +52,7 @@ public static class TokenTypeExtension
 
         return TokenType.Word;
     }
-    
-    
+
+
     public static bool IsMatchMd(this TokenType type, char c) => IsMatchMd(type, c.ToString());
 }

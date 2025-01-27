@@ -1,26 +1,17 @@
-
 namespace Markdown;
 
-public class PairToken(Token start, Token end)
+public record PairToken(Token Start, Token End)
 {
-    public Token Start { get; } = start;
-    public Token End { get; } = end;
+    // это можно упросить, но как?
+    public bool IntersectWith(PairToken token) =>
+        End.StartIndex > token.Start.StartIndex &&
+        End.StartIndex < token.End.StartIndex &&
+        Start.StartIndex < token.Start.StartIndex ||
+        token.End.StartIndex > Start.StartIndex &&
+        token.End.StartIndex < End.StartIndex &&
+        token.Start.StartIndex < Start.StartIndex;
 
-    public bool IntersectWith(PairToken token)
-    {
-        return End.StartIndex > token.Start.StartIndex &&
-               End.StartIndex < token.End.StartIndex &&
-               Start.StartIndex < token.Start.StartIndex ||
-               token.End.StartIndex > Start.StartIndex &&
-               token.End.StartIndex < End.StartIndex &&
-               token.Start.StartIndex < Start.StartIndex;
-    }
-    
-   
-    public bool Contain(PairToken token)
-    {
-        return Start.StartIndex > token.Start.StartIndex &&
-               End.StartIndex < token.End.StartIndex;
-    }
-    
+    public bool Contain(PairToken token) =>
+        Start.StartIndex > token.Start.StartIndex &&
+        End.StartIndex < token.End.StartIndex;
 }
